@@ -1,26 +1,73 @@
 @import "tailwindcss";
 
+@theme {
+  --color-background: #09090b;
+  --color-foreground: #e5e1e4;
+  --color-primary: #6366f1;
+  --color-primary-light: #c0c1ff;
+  --color-secondary: #06b6d4;
+  --color-secondary-light: #4cd7f6;
+  --color-surface-0: #09090b;
+  --color-surface-1: #131315;
+  --color-surface-2: #18181b;
+  --color-border-subtle: #27272a;
+  --color-text-muted: #c7c4d7;
+  
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --background: #09090b;
+  --foreground: #e5e1e4;
+  --primary: 99 102 241;
+  --secondary: 6 182 212;
+  --surface-0: #09090b;
+  --surface-1: #131315;
+  --surface-2: #18181b;
+  --border-subtle: #27272a;
 }
 
 body {
-  background: var(--background);
+  background-color: var(--surface-0);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Inter', sans-serif;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #09090b;
+}
+::-webkit-scrollbar-thumb {
+  background: #27272a;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3f3f46;
+}
+
+/* Glow effects */
+.glow-indigo {
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.15);
+}
+.glow-cyan {
+  box-shadow: 0 0 20px rgba(6, 182, 212, 0.15);
+}
+
+.gradient-border-indigo {
+  border: 1px solid transparent;
+  background: linear-gradient(#131315, #131315) padding-box,
+              linear-gradient(135deg, #6366f1, transparent) border-box;
+}
+
+.gradient-border-cyan {
+  border: 1px solid transparent;
+  background: linear-gradient(#131315, #131315) padding-box,
+              linear-gradient(135deg, #06b6d4, transparent) border-box;
 }
