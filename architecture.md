@@ -32,3 +32,10 @@ The interactive search bar in `src/app/docs/layout.tsx` is built as an autocompl
 - Searches across both document titles and internal section headers in real time.
 - Uses `React.useMemo` to cache the unified document directory reference, preventing Next.js re-render cascades.
 - Renders an absolute overlay popup with backdrop dismissal handling.
+
+### 4. AI Documentation Automation Infrastructure
+The platform automates documentation updates incrementally via Git-driven triggers and external n8n workflows:
+
+- **Trigger Sequence (GitHub Actions)**: Triggers only when a Pull Request is merged. Runs `scripts/detectChanges.ts` to locate changed source files, builds a payload containing repository metadata and changed file lists using `scripts/prepareWebhookPayload.ts`, and POSTs it to the n8n webhook.
+- **File Routing System (`docs-config/routing.yaml`)**: Maps application source code paths to documentation files (e.g., `src/components/{name}.tsx` to `content/docs/components/{name}.mdx`).
+- **Incremental Updating (`scripts/updateSections.ts`)**: The pipeline uses comment markers as anchors (`<!-- AUTO-MARKER-START -->` and `<!-- AUTO-MARKER-END -->`). The automation engine targets only content nested inside these flags, protecting human-written content.

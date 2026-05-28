@@ -1,0 +1,53 @@
+name: AI Documentation Automation
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+jobs:
+  build-and-trigger:
+    # Run only if the pull request was merged successfully
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2 # Fetch history to run git diff against parent commit
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Project Dependencies
+        run: npm ci || npm install --no-audit --no-fund
+
+      - name: Detect Changed Source Files
+        run: npx tsx scripts/detectChanges.ts --output changed-files.json
+
+      - name: Prepare n8n Webhook Payload
+        run: npx tsx scripts/prepareWebhookPayload.ts --input changed-files.json --output n8n-payload.json
+
+      - name: Route Files to Doc Mappings
+        run: npx tsx scripts/routeDocs.ts --input changed-files.json --output docs-mapping.json
+
+      - name: Send Payload to n8n Webhook
+        env:
+          N8N_WEBHOOK_URL: ${{ secrets.N8N_DOCS_WEBHOOK_URL }}
+        run: |
+          FILE_COUNT=$(node -e "console.log(JSON.parse(require('fs').readFileSync('changed-files.json')).length)")
+          if [ "$FILE_COUNT" -gt 0 ]; then
+            if [ -z "$N8N_WEBHOOK_URL" ]; then
+              echo "Error: N8N_DOCS_WEBHOOK_URL secret is not set. Skipping webhook."
+              exit 0
+            fi
+            echo "Sending webhook trigger to n8n..."
+            curl -X POST "$N8N_WEBHOOK_URL" \
+              -H "Content-Type: application/json" \
+              -d @n8n-payload.json
+          else
+            echo "No matching source file changes detected. Webhook skipped."
+          fi

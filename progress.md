@@ -20,7 +20,14 @@ This log tracks the milestones, completed integrations, styling refinements, and
 - [x] **Spotlight Search**: Implemented a real-time autocomplete search dropdown in `layout.tsx` targeting document titles and individual section headers.
 - [x] **Memory & Loop Fixes**: Memoized the document list registry via `useMemo` to completely eliminate infinite rendering state updates.
 
+### 4. AI Documentation Automation Infrastructure
+- [x] **GitHub Actions Workflow**: Configured `.github/workflows/ai-docs.yml` to trigger on PR merges, detect file changes, compile n8n payloads, and invoke the webhook.
+- [x] **Glob Routing Configuration**: Defined file-to-doc glob paths in `docs-config/routing.yaml`.
+- [x] **Incremental Section Updates**: Created `scripts/updateSections.ts` to execute selective updates between `<!-- AUTO-*-START -->` and `<!-- AUTO-*-END -->` comments, protecting developer edits.
+- [x] **Change & Mapping Pipeline**: Created change detection (`detectChanges.ts`), routing (`routeDocs.ts`), existence partitioning (`findExistingDocs.ts`), and payload creation (`prepareWebhookPayload.ts`) scripts.
+- [x] **Integration Documentation**: Wrote `n8n_integration_guide.md` specifying details on nodes, schemas, and LLM prompt setups.
+
 ## Pending Tasks
-- [ ] **n8n Workflow Syncing**: Finalize full production webhook listener triggers for live n8n generation runs.
+- [ ] **n8n Workflow Execution**: Configure the webhook endpoint live on the n8n instance and register the secret in GitHub.
 - [ ] **Interactive Code Copying**: Add a click-to-copy button on `<pre>` elements in `CodeSection.tsx`.
 - [ ] **Print / PDF Export**: Add CSS media print styles to generate clean physical exports of developer guides.
