@@ -23,58 +23,123 @@ function slugify(text: string): string {
     .replace(/-+$/, "");
 }
 
-async function getDocData(slug: string) {
-  let docData = null;
-
+async function getDocVersions(slug: string) {
+  let dbDocs: any[] = [];
+  
   try {
     const { data, error } = await supabase
       .from("docs")
-      .select("title, content, description")
-      .eq("slug", slug)
-      .single();
-
+      .select("id, slug, title, content, description, repo, file_path, created_at")
+      .order("created_at", { ascending: true });
+      
     if (!error && data) {
-      docData = normalizeDoc(data);
+      dbDocs = data;
     }
   } catch (err) {
-    console.warn("Error fetching from Supabase, falling back to all docs scan:", err);
+    console.warn("Error fetching all docs for version check:", err);
   }
 
-  // Fallback to searching database by slugified title if direct slug match is not found
-  if (!docData) {
-    try {
-      const { data: allDocs, error: allDocsError } = await supabase
-        .from("docs")
-        .select("title, content, description, slug");
+  // Group and find matching group for this slug
+  const groups: { [key: string]: any[] } = {};
+  dbDocs.forEach((doc) => {
+    const groupKey = (doc.repo && doc.file_path) 
+      ? `${doc.repo}/${doc.file_path}` 
+      : (doc.slug && doc.slug.trim() !== "" ? doc.slug : slugify(doc.title));
+      
+    if (!groups[groupKey]) {
+      groups[groupKey] = [];
+    }
+    groups[groupKey].push(doc);
+  });
 
-      if (!allDocsError && allDocs) {
-        const matchingDoc = allDocs.find(
-          (d) => d.slug === slug || slugify(d.title) === slug
-        );
-        if (matchingDoc) {
-          docData = normalizeDoc(matchingDoc);
-        }
-      }
-    } catch (err) {
-      console.warn("Error doing fallback scan of all docs:", err);
+  // Find the group that contains a document with the matching slug (or slugified title)
+  let matchedGroup: any[] | null = null;
+  for (const groupKey in groups) {
+    const items = groups[groupKey];
+    if (items.some(item => item.slug === slug || slugify(item.title) === slug)) {
+      matchedGroup = items;
+      break;
     }
   }
 
-  // Fallback to local mock registry if database document isn't found
-  if (!docData) {
-    docData = mockDocsRegistry[slug] || null;
+  // Fallback to mock registry
+  if (!matchedGroup) {
+    const mockDoc = mockDocsRegistry[slug];
+    if (mockDoc) {
+      matchedGroup = [{
+        id: slug,
+        slug: slug,
+        title: mockDoc.title,
+        description: mockDoc.description,
+        content: mockDoc,
+        created_at: new Date(0).toISOString(),
+        repo: null,
+        file_path: null
+      }];
+    }
   }
 
-  return docData;
+  if (!matchedGroup || matchedGroup.length === 0) {
+    return null;
+  }
+
+  // Sort matched group by created_at ascending
+  matchedGroup.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+
+  // Normalize all documents in the matched group and assign version labels
+  const versions = matchedGroup.map((doc, idx) => {
+    const normalized = normalizeDoc(doc);
+    
+    // Determine version label
+    let versionLabel = `v${idx + 1}`;
+    const contentObj = typeof doc.content === "string" 
+      ? JSON.parse(doc.content) 
+      : doc.content;
+    
+    if (contentObj?.version) {
+      versionLabel = contentObj.version;
+    } else if (contentObj?.metadata?.version) {
+      versionLabel = contentObj.metadata.version;
+    }
+
+    return {
+      id: doc.id,
+      slug: doc.slug || slugify(doc.title),
+      title: normalized?.title || doc.title,
+      description: normalized?.description || doc.description || "",
+      created_at: doc.created_at,
+      versionLabel,
+      doc: normalized, // the normalized Doc object
+    };
+  });
+
+  return versions;
 }
 
-export default async function Page({ params }: PageProps) {
-  const resolvedParams = await params;
-  const doc = await getDocData(resolvedParams.slug);
+interface PageProps {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}
 
-  if (!doc) {
+export default async function Page({ params, searchParams }: PageProps) {
+  const resolvedParams = await params;
+  const resolvedSearchParams = await searchParams;
+  const selectedVersion = typeof resolvedSearchParams.v === "string" ? resolvedSearchParams.v : undefined;
+
+  const versions = await getDocVersions(resolvedParams.slug);
+
+  if (!versions || versions.length === 0) {
     notFound();
   }
 
-  return <DocViewerClient doc={doc} slug={resolvedParams.slug} />;
+  // Find active version
+  const activeVersion = versions.find(v => v.versionLabel === selectedVersion) || versions[versions.length - 1];
+
+  return (
+    <DocViewerClient 
+      versions={versions} 
+      activeVersionLabel={activeVersion.versionLabel} 
+      slug={resolvedParams.slug} 
+    />
+  );
 }

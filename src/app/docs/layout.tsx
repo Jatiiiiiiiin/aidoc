@@ -35,7 +35,7 @@ export default function DocsLayout({
       try {
         const { data, error } = await supabase
           .from("docs")
-          .select("id, slug, title, content, description")
+          .select("id, slug, title, content, description, repo, file_path, created_at")
           .order("created_at", { ascending: true });
 
         if (error) throw error;
@@ -63,6 +63,10 @@ export default function DocsLayout({
         slug: docSlug,
         title: normalized?.title || doc.title,
         sections: normalized?.sections || [],
+        repo: doc.repo,
+        file_path: doc.file_path,
+        created_at: doc.created_at,
+        originalDoc: doc,
       });
     });
     
@@ -74,6 +78,10 @@ export default function DocsLayout({
           slug,
           title: doc.title,
           sections: doc.sections || [],
+          repo: null,
+          file_path: null,
+          created_at: new Date(0).toISOString(),
+          originalDoc: doc,
         });
       }
     });
@@ -81,7 +89,63 @@ export default function DocsLayout({
     return list;
   }, [dbDocs]);
 
+  // Group docs by repo/file_path or slug to support versioning
+  const versionedDocs = React.useMemo(() => {
+    const groups: { [key: string]: any[] } = {};
+
+    docsList.forEach((item) => {
+      const groupKey = (item.repo && item.file_path)
+        ? `${item.repo}/${item.file_path}`
+        : item.slug;
+      
+      if (!groups[groupKey]) {
+        groups[groupKey] = [];
+      }
+      groups[groupKey].push(item);
+    });
+
+    const groupedList: any[] = [];
+
+    Object.entries(groups).forEach(([groupKey, items]) => {
+      // Sort by created_at ascending (v1, v2, v3)
+      items.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+
+      // Assign version labels
+      const versions = items.map((item, idx) => {
+        let versionLabel = `v${idx + 1}`;
+        const contentObj = typeof item.originalDoc.content === "string"
+          ? JSON.parse(item.originalDoc.content)
+          : item.originalDoc.content;
+
+        if (contentObj?.version) {
+          versionLabel = contentObj.version;
+        } else if (contentObj?.metadata?.version) {
+          versionLabel = contentObj.metadata.version;
+        }
+
+        return {
+          ...item,
+          versionLabel,
+        };
+      });
+
+      const latest = versions[versions.length - 1];
+
+      groupedList.push({
+        slug: latest.slug,
+        title: latest.title,
+        groupKey,
+        versions,
+        latestVersionLabel: latest.versionLabel,
+      });
+    });
+
+    return groupedList;
+  }, [docsList]);
+
   const [activeSectionId, setActiveSectionId] = useState<string>("");
+  const [activeVersionLabel, setActiveVersionLabel] = useState<string>("");
+  const [activeDocSections, setActiveDocSections] = useState<any[]>([]);
 
   interface SearchResult {
     type: "doc" | "section";
@@ -104,23 +168,25 @@ export default function DocsLayout({
     const query = searchQuery.toLowerCase();
     const results: SearchResult[] = [];
 
-    docsList.forEach((doc) => {
-      if (doc.title.toLowerCase().includes(query)) {
+    versionedDocs.forEach((group) => {
+      const latestVer = group.versions[group.versions.length - 1];
+
+      if (group.title.toLowerCase().includes(query)) {
         results.push({
           type: "doc",
-          title: doc.title,
-          slug: doc.slug,
+          title: group.title,
+          slug: group.slug,
         });
       }
 
-      const sections = doc.sections || [];
+      const sections = latestVer?.sections || [];
       sections.forEach((section: any) => {
         if (section.title.toLowerCase().includes(query)) {
           results.push({
             type: "section",
             title: section.title,
-            subtitle: `In ${doc.title}`,
-            slug: doc.slug,
+            subtitle: `In ${group.title}`,
+            slug: group.slug,
             sectionId: section.id,
           });
         }
@@ -128,7 +194,7 @@ export default function DocsLayout({
     });
 
     setSearchResults(results.slice(0, 8));
-  }, [searchQuery, docsList]);
+  }, [searchQuery, versionedDocs]);
 
   useEffect(() => {
     const handleSectionChange = (e: Event) => {
@@ -139,6 +205,26 @@ export default function DocsLayout({
       window.removeEventListener("active-section-change", handleSectionChange);
     };
   }, []);
+
+  // Listen for version change events to update the sidebar accordingly
+  useEffect(() => {
+    const handleVersionChange = (e: Event) => {
+      const { versionLabel, sections } = (e as CustomEvent).detail;
+      setActiveVersionLabel(versionLabel);
+      setActiveDocSections(sections);
+    };
+
+    window.addEventListener("active-doc-version-change", handleVersionChange);
+    return () => {
+      window.removeEventListener("active-doc-version-change", handleVersionChange);
+    };
+  }, []);
+
+  // Reset active version information when the route pathname changes
+  useEffect(() => {
+    setActiveVersionLabel("");
+    setActiveDocSections([]);
+  }, [pathname]);
 
   return (
     <div className="flex min-h-screen flex-col bg-surface-0 text-foreground selection:bg-primary/20 selection:text-foreground">
@@ -239,22 +325,35 @@ export default function DocsLayout({
                 Core Guides
               </h3>
               <div className="space-y-1">
-                {docsList.map((doc) => {
-                  const isActive = pathname === `/docs/${doc.slug}`;
-                  const sections = doc.sections || [];
+                {versionedDocs.map((group) => {
+                  const isActive = pathname === `/docs/${group.slug}`;
+                  const activeLabel = isActive && activeVersionLabel 
+                    ? activeVersionLabel 
+                    : group.latestVersionLabel;
+
+                  const sections = isActive && activeDocSections.length > 0
+                    ? activeDocSections
+                    : (group.versions.find((v: any) => v.versionLabel === activeLabel) || group.versions[group.versions.length - 1])?.sections || [];
 
                   return (
-                    <div key={doc.slug} className="space-y-1">
+                    <div key={group.slug} className="space-y-1">
                       <Link
-                        href={`/docs/${doc.slug}`}
-                        className={`flex items-center gap-2 rounded px-3 py-2 text-xs font-medium transition-colors ${
+                        href={`/docs/${group.slug}`}
+                        className={`flex items-center justify-between rounded px-3 py-2 text-xs font-medium transition-colors ${
                           isActive
                             ? "bg-primary/10 text-primary-light font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] border-l-2 border-primary"
                             : "text-text-muted hover:bg-surface-2 hover:text-foreground"
                         }`}
                       >
-                        <FileText className="h-3.5 w-3.5" />
-                        <span className="truncate">{doc.title}</span>
+                        <div className="flex items-center gap-2 truncate">
+                          <FileText className="h-3.5 w-3.5" />
+                          <span className="truncate">{group.title}</span>
+                        </div>
+                        {group.versions.length > 1 && (
+                          <span className="text-[10px] bg-surface-2 border border-border-subtle rounded px-1.5 py-0.5 text-text-muted font-mono shrink-0">
+                            {activeLabel}
+                          </span>
+                        )}
                       </Link>
 
                       {/* Render section sub-items for active doc */}

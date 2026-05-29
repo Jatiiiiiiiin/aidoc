@@ -100,6 +100,11 @@ export function normalizeDoc(dbDoc: any): Doc | null {
       parsedContent.sections = sections;
     }
 
+    // Ensure sections is always an array
+    if (!parsedContent.sections || !Array.isArray(parsedContent.sections)) {
+      parsedContent.sections = [];
+    }
+
     // 3. Sanitize section types to match allowed Zod schema options
     if (parsedContent.sections && Array.isArray(parsedContent.sections)) {
       const allowedTypes = ["text", "code", "pipeline", "table", "bullets"];
@@ -152,9 +157,10 @@ export function normalizeDoc(dbDoc: any): Doc | null {
     }
 
     const validation = DocSchema.safeParse({
-      title: dbDoc.title,
+      title: dbDoc.title || parsedContent.title || "Untitled Document",
       description: dbDoc.description || parsedContent.description || "",
       ...parsedContent,
+      sections: parsedContent.sections,
     });
 
     if (validation.success) {

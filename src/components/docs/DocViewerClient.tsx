@@ -1,19 +1,70 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Doc, Section } from "@/lib/schema";
 import { SectionRenderer } from "./SectionRenderer";
-import { Cpu, RefreshCw, Layers, Clock, Sparkles } from "lucide-react";
+import { Cpu, RefreshCw, Layers, Clock, Sparkles, ChevronDown } from "lucide-react";
 
-interface DocViewerClientProps {
-  doc: Doc;
+interface DocVersionInfo {
+  id: string;
   slug: string;
+  title: string;
+  description?: string;
+  created_at: string;
+  versionLabel: string;
+  doc: Doc | null;
 }
 
-export const DocViewerClient: React.FC<DocViewerClientProps> = ({ doc, slug }) => {
-  const [activeDoc, setActiveDoc] = useState<Doc>(doc);
+interface DocViewerClientProps {
+  doc?: Doc; // fallback/deprecated
+  slug: string;
+  versions?: DocVersionInfo[];
+  activeVersionLabel?: string;
+}
+
+export const DocViewerClient: React.FC<DocViewerClientProps> = ({ 
+  doc, 
+  slug, 
+  versions, 
+  activeVersionLabel 
+}) => {
+  const router = useRouter();
+  const [isOpen, setIsOpen] = useState(false);
+
+  // Find active version
+  const activeVersion = React.useMemo(() => {
+    if (!versions || versions.length === 0) return null;
+    return versions.find(v => v.versionLabel === activeVersionLabel) || versions[versions.length - 1];
+  }, [versions, activeVersionLabel]);
+
+  // Set the current document data based on the selected version
+  const initialDoc = activeVersion?.doc || doc;
+  const [activeDoc, setActiveDoc] = useState<Doc | null>(initialDoc || null);
   const [regeneratingSectionId, setRegeneratingSectionId] = useState<string | null>(null);
   const [activeSectionId, setActiveSectionId] = useState<string>("");
+
+  useEffect(() => {
+    if (activeVersion && activeVersion.doc) {
+      setActiveDoc(activeVersion.doc);
+    } else if (doc) {
+      setActiveDoc(doc);
+    }
+  }, [activeVersion, doc]);
+
+  // Dispatch details when version or active doc changes
+  useEffect(() => {
+    if (activeDoc) {
+      window.dispatchEvent(
+        new CustomEvent("active-doc-version-change", {
+          detail: {
+            versionLabel: activeVersion?.versionLabel || "v1",
+            sections: activeDoc.sections,
+          },
+        })
+      );
+    }
+  }, [activeDoc, activeVersion]);
 
   // Scroll listener for scroll-spy highlighting
   useEffect(() => {
@@ -22,9 +73,9 @@ export const DocViewerClient: React.FC<DocViewerClientProps> = ({ doc, slug }) =
       
       // 1. Check if we've scrolled to the bottom of the window
       const isAtBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 15;
-      if (isAtBottom && activeDoc.sections.length > 0) {
+      if (isAtBottom && activeDoc && activeDoc.sections.length > 0) {
         currentSectionId = activeDoc.sections[activeDoc.sections.length - 1].id;
-      } else {
+      } else if (activeDoc) {
         // 2. Otherwise find the section currently crossing the threshold (y = 180px) in the viewport
         for (const section of activeDoc.sections) {
           const el = document.getElementById(section.id);
@@ -50,7 +101,7 @@ export const DocViewerClient: React.FC<DocViewerClientProps> = ({ doc, slug }) =
     return () => {
       window.removeEventListener("scroll", handleScroll);
     };
-  }, [activeDoc.sections, activeSectionId]);
+  }, [activeDoc?.sections, activeSectionId]);
 
   // Dispatch section changes to notify the main layout navigation
   useEffect(() => {
@@ -68,6 +119,7 @@ export const DocViewerClient: React.FC<DocViewerClientProps> = ({ doc, slug }) =
     // Simulate API roundtrip for section updates
     setTimeout(() => {
       setActiveDoc((prevDoc) => {
+        if (!prevDoc) return null;
         const updatedSections = prevDoc.sections.map((sec) => {
           if (sec.id === sectionId) {
             // Modify content based on section type to show it regenerated
@@ -101,16 +153,90 @@ export const DocViewerClient: React.FC<DocViewerClientProps> = ({ doc, slug }) =
     }, 2000);
   };
 
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr) return "May 2026";
+    try {
+      const date = new Date(dateStr);
+      if (isNaN(date.getTime()) || date.getTime() === 0) return "May 2026";
+      return date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch {
+      return "May 2026";
+    }
+  };
+
+  if (!activeDoc) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <RefreshCw className="h-6 w-6 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="flex gap-8 items-start">
       {/* Main Documentation Area */}
       <div className="flex-1 space-y-12">
         {/* Doc Header */}
         <div className="space-y-4">
-          <div className="flex items-center gap-2 text-xs font-mono text-primary-light">
-            <Layers className="h-3.5 w-3.5" />
-            <span>Workspace / {slug}</span>
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2 text-xs font-mono text-primary-light">
+              <Layers className="h-3.5 w-3.5" />
+              <span>Workspace / {slug}</span>
+            </div>
+            
+            {/* Version dropdown selector */}
+            {versions && versions.length > 1 && (
+              <div className="relative">
+                <button
+                  onClick={() => setIsOpen(!isOpen)}
+                  className="flex items-center gap-2 rounded-lg border border-border-subtle bg-surface-1 px-3 py-1.5 text-xs font-semibold text-primary-light hover:bg-surface-2 transition-all cursor-pointer shadow-sm font-mono"
+                >
+                  <span>Doc Version: {activeVersion?.versionLabel}</span>
+                  <ChevronDown className={`h-3 w-3 text-text-muted transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
+                </button>
+                
+                {isOpen && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
+                    <div className="absolute right-0 mt-1.5 w-40 z-20 rounded-md border border-border-subtle bg-surface-1 p-1 shadow-lg backdrop-blur-md">
+                      {versions.map((v) => {
+                        const isSelected = v.versionLabel === activeVersion?.versionLabel;
+                        const isLatest = v.versionLabel === versions[versions.length - 1].versionLabel;
+                        return (
+                          <button
+                            key={v.id}
+                            onClick={() => {
+                              router.push(`/docs/${slug}?v=${v.versionLabel}`);
+                              setIsOpen(false);
+                            }}
+                            className={`flex w-full items-center justify-between rounded px-2 py-1.5 text-xs font-mono text-left transition-colors ${
+                              isSelected
+                                ? "bg-primary/10 text-primary-light font-bold"
+                                : "text-text-muted hover:bg-surface-2 hover:text-foreground"
+                            }`}
+                          >
+                            <span>{v.versionLabel}</span>
+                            {isLatest && (
+                              <span className="text-[9px] bg-secondary/10 text-secondary-light px-1 rounded uppercase font-semibold">
+                                Latest
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
           </div>
+          
           <h1 className="text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
             {activeDoc.title}
           </h1>
@@ -121,7 +247,7 @@ export const DocViewerClient: React.FC<DocViewerClientProps> = ({ doc, slug }) =
           )}
           <div className="flex flex-wrap items-center gap-4 border-y border-border-subtle py-3 text-xs text-text-muted">
             <span className="flex items-center gap-1.5">
-              <Clock className="h-3.5 w-3.5 text-secondary" /> Updated May 2026
+              <Clock className="h-3.5 w-3.5 text-secondary" /> Created {formatDate(activeVersion?.created_at || (doc as any)?.created_at)}
             </span>
             <span className="rounded-full bg-secondary/10 px-2.5 py-0.5 text-[10px] font-semibold text-secondary-light uppercase">
               Schema Validated
