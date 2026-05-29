@@ -20,6 +20,7 @@ try {
         }
       }
     });
+    
   }
 } catch (e) {
   console.error("Error reading .env.local:", e);
