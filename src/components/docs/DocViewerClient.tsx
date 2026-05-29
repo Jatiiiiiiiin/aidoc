@@ -190,49 +190,34 @@ export const DocViewerClient: React.FC<DocViewerClientProps> = ({
               <span>Workspace / {slug}</span>
             </div>
             
-            {/* Version dropdown selector */}
+            {/* Version horizontal toggle */}
             {versions && versions.length > 1 && (
-              <div className="relative">
-                <button
-                  onClick={() => setIsOpen(!isOpen)}
-                  className="flex items-center gap-2 rounded-lg border border-border-subtle bg-surface-1 px-3 py-1.5 text-xs font-semibold text-primary-light hover:bg-surface-2 transition-all cursor-pointer shadow-sm font-mono"
-                >
-                  <span>Doc Version: {activeVersion?.versionLabel}</span>
-                  <ChevronDown className={`h-3 w-3 text-text-muted transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
-                </button>
-                
-                {isOpen && (
-                  <>
-                    <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
-                    <div className="absolute right-0 mt-1.5 w-40 z-20 rounded-md border border-border-subtle bg-surface-1 p-1 shadow-lg backdrop-blur-md">
-                      {versions.map((v) => {
-                        const isSelected = v.versionLabel === activeVersion?.versionLabel;
-                        const isLatest = v.versionLabel === versions[versions.length - 1].versionLabel;
-                        return (
-                          <button
-                            key={v.id}
-                            onClick={() => {
-                              router.push(`/docs/${slug}?v=${v.versionLabel}`);
-                              setIsOpen(false);
-                            }}
-                            className={`flex w-full items-center justify-between rounded px-2 py-1.5 text-xs font-mono text-left transition-colors ${
-                              isSelected
-                                ? "bg-primary/10 text-primary-light font-bold"
-                                : "text-text-muted hover:bg-surface-2 hover:text-foreground"
-                            }`}
-                          >
-                            <span>{v.versionLabel}</span>
-                            {isLatest && (
-                              <span className="text-[9px] bg-secondary/10 text-secondary-light px-1 rounded uppercase font-semibold">
-                                Latest
-                              </span>
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </>
-                )}
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-mono text-text-muted uppercase tracking-wider">Version:</span>
+                <div className="flex items-center gap-1 bg-surface-2 border border-border-subtle p-0.5 rounded-full shadow-[inset_0_1px_2px_rgba(0,0,0,0.15)]">
+                  {versions.map((v) => {
+                    const isSelected = v.versionLabel === activeVersion?.versionLabel;
+                    const isLatest = v.versionLabel === versions[versions.length - 1].versionLabel;
+                    return (
+                      <button
+                        key={v.id}
+                        onClick={() => {
+                          router.push(`/docs/${slug}?v=${v.versionLabel}`);
+                        }}
+                        className={`px-3 py-1 text-[11px] font-mono rounded-full cursor-pointer transition-all flex items-center gap-1.5 ${
+                          isSelected
+                            ? "bg-primary text-foreground font-semibold shadow-md shadow-black/20"
+                            : "text-text-muted hover:text-foreground hover:bg-surface-1/50"
+                        }`}
+                      >
+                        <span>{v.versionLabel}</span>
+                        {isLatest && (
+                          <span className={`w-1.5 h-1.5 rounded-full ${isSelected ? "bg-white" : "bg-secondary-light animate-pulse"}`} />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>
