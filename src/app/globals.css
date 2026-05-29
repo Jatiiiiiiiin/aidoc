@@ -71,3 +71,71 @@ body {
   background: linear-gradient(#131315, #131315) padding-box,
               linear-gradient(135deg, #06b6d4, transparent) border-box;
 }
+
+/* Print and PDF Export Styles */
+@media print {
+  html, body {
+    background-color: #ffffff !important;
+    color: #111827 !important;
+    font-family: system-ui, -apple-system, sans-serif !important;
+  }
+
+  /* Hide navigation, sidebar, status pill, and action buttons */
+  header,
+  aside,
+  button,
+  .flex.items-center.gap-2.rounded-full.border,
+  .cursor-pointer {
+    display: none !important;
+  }
+
+  /* Expand main document to full page boundaries */
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+    background-color: #ffffff !important;
+    color: #111827 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  main .max-w-4xl {
+    max-w: 100% !important;
+    width: 100% !important;
+  }
+
+  /* Print typography adjustments */
+  h1, h2, h3, h4 {
+    color: #111827 !important;
+    page-break-after: avoid;
+    page-break-inside: avoid;
+    border-bottom-color: #e5e7eb !important;
+  }
+
+  p, li, blockquote {
+    color: #374151 !important;
+    orphans: 3;
+    widows: 3;
+  }
+
+  /* Format code snippets cleanly for paper printing */
+  pre, code, div.font-mono {
+    background-color: #f9fafb !important;
+    color: #1f2937 !important;
+    border-color: #e5e7eb !important;
+    box-shadow: none !important;
+    white-space: pre-wrap !important;
+    word-break: break-all !important;
+  }
+
+  .glow-indigo,
+  .glow-cyan {
+    box-shadow: none !important;
+  }
+
+  /* Page break rules for clean outputs */
+  @page {
+    margin: 2cm 1.5cm;
+  }
+}
+

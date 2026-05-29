@@ -11,6 +11,18 @@ interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
+function slugify(text: string): string {
+  return text
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/[^\w\-]+/g, "")
+    .replace(/\-\-+/g, "-")
+    .replace(/^-+/, "")
+    .replace(/-+$/, "");
+}
+
 async function getDocData(slug: string) {
   let docData = null;
 
@@ -25,7 +37,27 @@ async function getDocData(slug: string) {
       docData = normalizeDoc(data);
     }
   } catch (err) {
-    console.warn("Error fetching from Supabase, falling back to mock doc:", err);
+    console.warn("Error fetching from Supabase, falling back to all docs scan:", err);
+  }
+
+  // Fallback to searching database by slugified title if direct slug match is not found
+  if (!docData) {
+    try {
+      const { data: allDocs, error: allDocsError } = await supabase
+        .from("docs")
+        .select("title, content, description, slug");
+
+      if (!allDocsError && allDocs) {
+        const matchingDoc = allDocs.find(
+          (d) => d.slug === slug || slugify(d.title) === slug
+        );
+        if (matchingDoc) {
+          docData = normalizeDoc(matchingDoc);
+        }
+      }
+    } catch (err) {
+      console.warn("Error doing fallback scan of all docs:", err);
+    }
   }
 
   // Fallback to local mock registry if database document isn't found

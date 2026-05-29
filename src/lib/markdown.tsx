@@ -1,4 +1,6 @@
-import React from "react";
+"use client";
+
+import React, { useState } from "react";
 import {
   ChevronRight,
   Info,
@@ -11,8 +13,42 @@ import {
   Flame,
   Bug,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Copy,
+  Check
 } from "lucide-react";
+
+const CopyButton: React.FC<{ text: string }> = ({ text }) => {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (e) {
+      console.error("Failed to copy text: ", e);
+    }
+  };
+
+  return (
+    <button
+      onClick={handleCopy}
+      className="flex items-center gap-1 rounded px-2 py-1 transition-colors hover:bg-border-subtle hover:text-foreground cursor-pointer text-text-muted text-[11px]"
+    >
+      {copied ? (
+        <>
+          <Check className="h-3.5 w-3.5 text-secondary" />
+          <span>Copied</span>
+        </>
+      ) : (
+        <>
+          <Copy className="h-3.5 w-3.5" />
+          <span>Copy</span>
+        </>
+      )}
+    </button>
+  );
+};
 
 /**
  * Tokenizes and renders inline markdown formatting:
@@ -140,6 +176,9 @@ export function parseMarkdownBlocks(content: string): React.ReactNode[] {
   let currentBlockquoteLines: string[] = [];
   let currentParagraphLines: string[] = [];
   let currentHeadingLevel = 0; // Tracks nesting: 0=top, 2=##, 3=###, 4=####
+  let isInCodeBlock = false;
+  let codeBlockLines: string[] = [];
+  let codeBlockLanguage = "typescript";
 
   const getIndentClass = () => {
     if (currentHeadingLevel === 2) return "ml-4";
@@ -282,6 +321,43 @@ export function parseMarkdownBlocks(content: string): React.ReactNode[] {
     const line = lines[i];
     const trimmed = line.trim();
 
+    // 0. Fenced Code Block Handler
+    if (trimmed.startsWith("```")) {
+      if (isInCodeBlock) {
+        const codeText = codeBlockLines.join("\n");
+        const lang = codeBlockLanguage;
+        const indentClass = getIndentClass();
+        
+        blocks.push(
+          <div key={`fenced-code-${i}`} className={`my-4 overflow-hidden rounded-md border border-border-subtle bg-surface-1 font-mono text-sm glow-indigo ${indentClass}`}>
+            <div className="flex items-center justify-between border-b border-border-subtle bg-surface-2 px-4 py-2 text-xs text-text-muted">
+              <span>{lang || "code"}</span>
+              <CopyButton text={codeText} />
+            </div>
+            <div className="overflow-x-auto p-4 max-h-[400px]">
+              <pre className="text-left leading-relaxed text-text-muted selection:bg-primary/20">
+                <code>{codeText}</code>
+              </pre>
+            </div>
+          </div>
+        );
+        
+        codeBlockLines = [];
+        isInCodeBlock = false;
+      } else {
+        blocks.push(...flushAll(`line-${i}`));
+        isInCodeBlock = true;
+        codeBlockLanguage = trimmed.slice(3).trim() || "typescript";
+        codeBlockLines = [];
+      }
+      continue;
+    }
+
+    if (isInCodeBlock) {
+      codeBlockLines.push(line);
+      continue;
+    }
+
     // 1. Horizontal rule
     if (trimmed === "---") {
       blocks.push(...flushAll(`line-${i}`));
@@ -375,7 +451,26 @@ export function parseMarkdownBlocks(content: string): React.ReactNode[] {
   }
 
   // Flush remaining elements
-  blocks.push(...flushAll("final"));
+  if (isInCodeBlock) {
+    const codeText = codeBlockLines.join("\n");
+    const lang = codeBlockLanguage;
+    const indentClass = getIndentClass();
+    blocks.push(
+      <div key="fenced-code-final" className={`my-4 overflow-hidden rounded-md border border-border-subtle bg-surface-1 font-mono text-sm glow-indigo ${indentClass}`}>
+        <div className="flex items-center justify-between border-b border-border-subtle bg-surface-2 px-4 py-2 text-xs text-text-muted">
+          <span>{lang || "code"}</span>
+          <CopyButton text={codeText} />
+        </div>
+        <div className="overflow-x-auto p-4 max-h-[400px]">
+          <pre className="text-left leading-relaxed text-text-muted selection:bg-primary/20">
+            <code>{codeText}</code>
+          </pre>
+        </div>
+      </div>
+    );
+  } else {
+    blocks.push(...flushAll("final"));
+  }
 
   return blocks.filter(Boolean);
 }

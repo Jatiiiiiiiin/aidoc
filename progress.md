@@ -27,7 +27,8 @@ This log tracks the milestones, completed integrations, styling refinements, and
 - [x] **Change & Mapping Pipeline**: Created change detection (`detectChanges.ts`), routing (`routeDocs.ts`), existence partitioning (`findExistingDocs.ts`), and payload creation (`prepareWebhookPayload.ts`) scripts.
 - [x] **Integration Documentation**: Wrote `n8n_integration_guide.md` specifying details on nodes, schemas, and LLM prompt setups.
 
+- [x] **Interactive Code Copying**: Added a full CopyButton wrapper for markdown-parsed fenced code blocks within `src/lib/markdown.tsx` and unified with `CodeSection.tsx`.
+- [x] **Print / PDF Export**: Engineered comprehensive `@media print` CSS configurations in `src/app/globals.css` to enable distraction-free paper/PDF printing.
+
 ## Pending Tasks
 - [ ] **n8n Workflow Execution**: Configure the webhook endpoint live on the n8n instance and register the secret in GitHub.
-- [ ] **Interactive Code Copying**: Add a click-to-copy button on `<pre>` elements in `CodeSection.tsx`.
-- [ ] **Print / PDF Export**: Add CSS media print styles to generate clean physical exports of developer guides.

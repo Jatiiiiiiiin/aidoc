@@ -8,6 +8,18 @@ import { mockDocsRegistry } from "@/lib/mockDoc";
 import { supabase } from "@/lib/supabase";
 import { normalizeDoc } from "@/lib/normalizer";
 
+function slugify(text: string): string {
+  return text
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/[^\w\-]+/g, "")
+    .replace(/\-\-+/g, "-")
+    .replace(/^-+/, "")
+    .replace(/-+$/, "");
+}
+
 export default function DocsLayout({
   children,
 }: {
@@ -45,9 +57,10 @@ export default function DocsLayout({
 
     dbDocs.forEach((doc) => {
       const normalized = normalizeDoc(doc);
+      const docSlug = doc.slug && doc.slug.trim() !== "" ? doc.slug : slugify(doc.title);
       list.push({
         id: doc.id,
-        slug: doc.slug,
+        slug: docSlug,
         title: normalized?.title || doc.title,
         sections: normalized?.sections || [],
       });
