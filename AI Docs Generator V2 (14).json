@@ -72,8 +72,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        5152,
-        3984
+        5180,
+        4160
       ],
       "alwaysOutputData": true
     },
@@ -550,8 +550,8 @@
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
       "position": [
-        4960,
-        3984
+        4780,
+        4160
       ],
       "id": "7671a675-c93e-43fb-b0bf-db1f8894a9aa",
       "name": "Wait",
@@ -585,8 +585,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        5020,
-        3800
+        4960,
+        4160
       ],
       "id": "check-skip-save-if-node-id",
       "name": "Check Skip Save"
