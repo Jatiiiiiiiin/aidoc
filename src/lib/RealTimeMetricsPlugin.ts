@@ -159,6 +159,23 @@ export class RealTimeMetricsPlugin {
     return score;
   }
 
+  /**
+   * Tracks viewer side latency. If latency exceeds the 500ms threshold,
+   * a warning is printed and logged as a metrics event.
+   */
+  public trackPerformanceLatency(sectionId: string, latencyMs: number) {
+    console.log(`[RealTimeMetricsPlugin] Tracking performance latency: ${latencyMs}ms for ${sectionId}`);
+    if (latencyMs > 500) {
+      console.warn(`[RealTimeMetricsPlugin] Latency threshold breached: ${latencyMs}ms`);
+    }
+    this.enqueue({
+      sectionId,
+      eventType: "scroll",
+      timestampMs: Date.now(),
+      metadata: { latencyMs, thresholdMs: 500 }
+    });
+  }
+
   // ─── Attention Heatmap ───────────────────────────────────────────────────────
 
   /**

@@ -132,8 +132,14 @@ export const DocViewerClient: React.FC<DocViewerClientProps> = ({
     } else if (section.type === "bullets") {
       text = (section.content as string[]).join("\n");
     } else if (section.type === "table") {
-      const { headers, rows } = section.content as { headers: string[]; rows: string[][] };
-      text = [headers.join("\t"), ...rows.map((r) => r.join("\t"))].join("\n");
+      const { headers, rows } = section.content as { headers: string[]; rows: any[] };
+      const getRowCells = (r: any): any[] => {
+        if (Array.isArray(r)) return r;
+        if (r && typeof r === "object") return Object.values(r);
+        if (r !== null && r !== undefined) return [r];
+        return [];
+      };
+      text = [headers.join("\t"), ...rows.map((r) => getRowCells(r).join("\t"))].join("\n");
     } else {
       text = JSON.stringify(section.content, null, 2);
     }
@@ -275,8 +281,15 @@ export const DocViewerClient: React.FC<DocViewerClientProps> = ({
                children: section.content.headers.map((h: any) => new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: String(h), bold: true })] })] }))
              }));
              section.content.rows.forEach((row: any) => {
+               const getRowCells = (r: any): any[] => {
+                 if (Array.isArray(r)) return r;
+                 if (r && typeof r === "object") return Object.values(r);
+                 if (r !== null && r !== undefined) return [r];
+                 return [];
+               };
+               const cells = getRowCells(row);
                docxTableRows.push(new TableRow({
-                 children: row.map((cell: any) => new TableCell({ children: [new Paragraph({ text: String(cell) })] }))
+                 children: cells.map((cell: any) => new TableCell({ children: [new Paragraph({ text: String(cell) })] }))
                }));
              });
              children.push(new Table({ rows: docxTableRows }));

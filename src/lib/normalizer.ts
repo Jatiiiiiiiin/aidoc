@@ -70,7 +70,12 @@ export function normalizeDoc(dbDoc: any): Doc | null {
           title: "Investor & Business Highlights",
           content: {
             headers: ["Highlight", "Value Proposition"],
-            rows: highlights.map((h: any) => [h.title, h.content])
+            rows: highlights.map((h: any) => {
+              if (h && typeof h === "object") {
+                return [h.title || h.name || "", h.content || h.value || h.description || ""];
+              }
+              return [String(h || ""), ""];
+            })
           }
         });
       }

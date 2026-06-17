@@ -29,21 +29,30 @@ export const TableSection: React.FC<TableSectionProps> = ({ title, content }) =>
               </tr>
             </thead>
             <tbody className="divide-y divide-border-subtle">
-              {rows.map((row, rowIdx) => (
-                <tr
-                  key={rowIdx}
-                  className="transition-colors hover:bg-surface-2/40"
-                >
-                  {row.map((cell, cellIdx) => (
-                    <td
-                      key={cellIdx}
-                      className="px-6 py-4 font-sans text-text-muted whitespace-pre-line text-sm leading-relaxed"
-                    >
-                      {renderFormattedText(String(cell))}
-                    </td>
-                  ))}
-                </tr>
-              ))}
+              {rows.map((row, rowIdx) => {
+                const getCells = (r: any): any[] => {
+                  if (Array.isArray(r)) return r;
+                  if (r && typeof r === "object") return Object.values(r);
+                  if (r !== null && r !== undefined) return [r];
+                  return [];
+                };
+                const cells = getCells(row);
+                return (
+                  <tr
+                    key={rowIdx}
+                    className="transition-colors hover:bg-surface-2/40"
+                  >
+                    {cells.map((cell, cellIdx) => (
+                      <td
+                        key={cellIdx}
+                        className="px-6 py-4 font-sans text-text-muted whitespace-pre-line text-sm leading-relaxed"
+                      >
+                        {renderFormattedText(String(cell))}
+                      </td>
+                    ))}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
