@@ -10,3 +10,5 @@ if (!supabaseUrl || !supabaseAnonKey) {
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // sync doc pipeline
+
+// sync doc pipeline

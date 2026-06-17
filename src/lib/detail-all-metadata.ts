@@ -64,3 +64,5 @@ async function detailDocs() {
 detailDocs();
 
 // sync doc pipeline
+
+// sync doc pipeline

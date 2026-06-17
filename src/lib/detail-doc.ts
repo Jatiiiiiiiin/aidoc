@@ -47,3 +47,5 @@ async function getLatestDocDetail() {
 getLatestDocDetail();
 
 // sync doc pipeline
+
+// sync doc pipeline

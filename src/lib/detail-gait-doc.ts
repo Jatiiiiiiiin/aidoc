@@ -48,3 +48,5 @@ async function getGaitDocDetail() {
 getGaitDocDetail();
 
 // sync doc pipeline
+
+// sync doc pipeline

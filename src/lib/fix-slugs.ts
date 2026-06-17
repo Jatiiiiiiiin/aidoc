@@ -89,3 +89,5 @@ async function fixSlugs() {
 fixSlugs();
 
 // sync doc pipeline
+
+// sync doc pipeline
