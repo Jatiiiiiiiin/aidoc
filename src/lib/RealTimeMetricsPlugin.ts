@@ -48,7 +48,7 @@ export class RealTimeMetricsPlugin {
   // Testing the surgical update pipeline!
   public trackBounceRate(bounceThresholdSeconds: number) {
     console.log(`[RealTimeMetricsPlugin] Tracking bounce rate threshold at ${bounceThresholdSeconds}s`);
-    console.log(`[RealTimeMetricsPlugin] SURGICAL UPDATE TEST SUCCESSFUL - VERSION 7.0`);
+    console.log(`[RealTimeMetricsPlugin] SURGICAL UPDATE TEST SUCCESSFUL - VERSION 8.0`);
   }
 
   // Feature: Scroll Depth Heatmap Tracking
@@ -122,7 +122,7 @@ export class RealTimeMetricsPlugin {
 
   // Feature: AI-Driven Intent Recognition and Session Prioritization
   // Identifies user search intent based on dwell time, scroll acceleration, and section traversal patterns.
-  // Predicts whether a user is an investor, developer, or end-user.
+  // Predicts whether a user is an investor, developer, or end-user with high fidelity.
   public predictUserIntent(
     dwellTimes: Record<string, number>,
     scrollSpeedPixelsPerSec: number
