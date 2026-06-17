@@ -1,0 +1,12 @@
+# docs.yaml
+# This file controls which source files get automatically documented.
+# Add a file path here to enable AI documentation for it.
+# Remove a file path to stop updating its documentation.
+# The pipeline will ONLY process files listed here when code is pushed.
+
+tracked_files:
+  - src/lib/RealTimeMetricsPlugin.ts
+  - src/lib/clear-db.ts
+  - src/lib/audit-logger.ts
+  - src/components/docs/DocViewerClient.tsx
+  - src/lib/schema.ts
