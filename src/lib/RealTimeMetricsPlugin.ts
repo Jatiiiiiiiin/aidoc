@@ -119,6 +119,36 @@ export class RealTimeMetricsPlugin {
     }
     return json;
   }
+
+  // Feature: AI-Driven Intent Recognition and Session Prioritization
+  // Identifies user search intent based on dwell time, scroll acceleration, and section traversal patterns.
+  // Predicts whether a user is an investor, developer, or end-user.
+  public predictUserIntent(
+    dwellTimes: Record<string, number>,
+    scrollSpeedPixelsPerSec: number
+  ): "investor" | "developer" | "general" {
+    let devSignals = 0;
+    let investorSignals = 0;
+
+    for (const [sectionId, dwell] of Object.entries(dwellTimes)) {
+      if (sectionId.includes("step-by-step") || sectionId.includes("code") || sectionId.includes("architecture")) {
+        if (dwell > 45) devSignals++;
+      }
+      if (sectionId.includes("executive-summary") || sectionId.includes("business-problem") || sectionId.includes("value-proposition")) {
+        if (dwell > 30) investorSignals++;
+      }
+    }
+
+    if (scrollSpeedPixelsPerSec < 100) {
+      investorSignals += 2;
+    } else if (scrollSpeedPixelsPerSec > 600) {
+      devSignals += 2;
+    }
+
+    const intent = devSignals > investorSignals ? "developer" : (investorSignals > 0 ? "investor" : "general");
+    console.log(`[RealTimeMetricsPlugin] AI Intent recognition predicted: ${intent}`);
+    return intent;
+  }
 }
 
 // v2.0 — integrated with docs.yaml tracking system
