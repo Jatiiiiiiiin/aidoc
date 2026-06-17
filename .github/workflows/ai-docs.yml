@@ -2,14 +2,16 @@ name: AI Documentation Automation
 # Test A: skip path — CI yaml change should not update the investor doc
 
 on:
+  push:
+    branches: [main]
   pull_request:
     types: [closed]
     branches: [main]
 
 jobs:
   build-and-trigger:
-    # Run only if the pull request was merged successfully
-    if: github.event.pull_request.merged == true
+    # Run only if the pull request was merged successfully or direct push
+    if: github.event.pull_request.merged == true || github.event_name == 'push'
     runs-on: ubuntu-latest
 
     steps:
