@@ -37,6 +37,9 @@ jobs:
       - name: Route Files to Doc Mappings
         run: npx tsx scripts/routeDocs.ts --input changed-files.json --output docs-mapping.json
 
+      - name: Validate Generated Docs Schema
+        run: npx tsx scripts/validateDocs.ts --input docs-mapping.json
+
       - name: Send Payload to n8n Webhook
         env:
           N8N_WEBHOOK_URL: ${{ secrets.N8N_DOCS_WEBHOOK_URL }}
