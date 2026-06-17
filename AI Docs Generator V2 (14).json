@@ -556,6 +556,40 @@
       "id": "7671a675-c93e-43fb-b0bf-db1f8894a9aa",
       "name": "Wait",
       "webhookId": "c1b40449-0d44-4bf1-b31b-f984f7745a97"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "skip-condition-id-123456",
+              "leftValue": "={{$json.isSkip}}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        5020,
+        3800
+      ],
+      "id": "check-skip-save-if-node-id",
+      "name": "Check Skip Save"
     }
   ],
   "pinData": {
@@ -1081,6 +1115,24 @@
     },
     "Wait": {
       "main": [
+        [
+          {
+            "node": "Check Skip Save",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Skip Save": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ],
         [
           {
             "node": "Save To Supabase",
