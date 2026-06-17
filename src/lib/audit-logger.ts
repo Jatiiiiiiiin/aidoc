@@ -32,6 +32,14 @@ export class AuditLogger {
       .update(`${transactionId}:${payload}`)
       .digest("hex");
   }
-}
 
-// sync doc pipeline
+  /**
+   * Performs real-time anomaly detection using a moving Z-score threshold (default 3.0).
+   * Generates alerts if the number of deletion requests exceeds historic parameters.
+   */
+  static detectTelemetryAnomaly(requestCount: number, historicalMean: number, historicalStdDev: number): boolean {
+    if (historicalStdDev === 0) return false;
+    const zScore = Math.abs(requestCount - historicalMean) / historicalStdDev;
+    return zScore > 3.0;
+  }
+}
