@@ -48,7 +48,7 @@ export class RealTimeMetricsPlugin {
   // Testing the surgical update pipeline!
   public trackBounceRate(bounceThresholdSeconds: number) {
     console.log(`[RealTimeMetricsPlugin] Tracking bounce rate threshold at ${bounceThresholdSeconds}s`);
-    console.log(`[RealTimeMetricsPlugin] SURGICAL UPDATE TEST SUCCESSFUL - VERSION 2.0`);
+    console.log(`[RealTimeMetricsPlugin] SURGICAL UPDATE TEST SUCCESSFUL - VERSION 3.0`);
   }
 
   // Feature: Scroll Depth Heatmap Tracking
