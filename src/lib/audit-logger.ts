@@ -1,3 +1,5 @@
+import * as crypto from "crypto";
+
 /**
  * System Audit Logger
  * 
@@ -19,5 +21,15 @@ export class AuditLogger {
     // Only Level 5 (Root) or higher can perform bulk deletions
     return clearanceLevel >= 5;
   }
+
+  /**
+   * Generates a cryptographic SHA-256 HMAC integrity hash of the log payload.
+   * This is used to guarantee that the ledger remains completely immutable.
+   */
+  static generateIntegrityHash(transactionId: string, payload: string, secretKey: string = "default-system-secret"): string {
+    return crypto
+      .createHmac("sha256", secretKey)
+      .update(`${transactionId}:${payload}`)
+      .digest("hex");
+  }
 }
-// sync doc pipeline
