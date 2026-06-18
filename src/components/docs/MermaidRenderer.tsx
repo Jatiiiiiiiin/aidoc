@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useEffect, useState } from "react";
 
@@ -132,8 +132,6 @@ export const MermaidRenderer: React.FC<MermaidRendererProps> = ({ chart }) => {
     />
   );
 };
-
-// sync doc pipeline
 
 // sync doc pipeline
 

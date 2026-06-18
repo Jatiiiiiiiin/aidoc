@@ -1,8 +1,6 @@
-import React from "react";
 import { notFound } from "next/navigation";
 import { mockDocsRegistry } from "../../../lib/mockDoc";
 import { supabase } from "../../../lib/supabase";
-import { DocSchema } from "../../../lib/schema";
 import { DocViewerClient } from "../../../components/docs/DocViewerClient";
 
 import { normalizeDoc } from "../../../lib/normalizer";
@@ -144,13 +142,3 @@ export default async function Page({ params, searchParams }: PageProps) {
   );
 }
 
-// Next.js dynamic routing implementation for viewing AI generated docs
-// Next.js dynamic routing implementation for viewing AI generated docs
-// Testing clean UI codebase documentation generation
-// Triggering an update to verify real-time timestamps in the AI documentation pipeline!
-
-// sync doc pipeline
-
-// sync doc pipeline
-
-// sync doc pipeline

@@ -18,9 +18,3 @@ export default async function Home() {
 
   redirect("/docs/wearable-health-insights-pipeline");
 }
-
-// sync doc pipeline
-
-// sync doc pipeline
-
-// sync doc pipeline

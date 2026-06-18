@@ -482,8 +482,3 @@ export function parseMarkdownBlocks(content: any): React.ReactNode[] {
   return blocks.filter(Boolean);
 }
 
-// sync doc pipeline
-
-// sync doc pipeline
-
-// sync doc pipeline

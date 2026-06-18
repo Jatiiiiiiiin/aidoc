@@ -40,4 +40,14 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-AI Docs Generator V2 (14).json
+# local artifacts
+scratch/
+.cache/
+session_memory.json
+*.json.bak
+changed-files.json
+n8n-payload.json
+docs-mapping.json
+
+# cli build output
+packages/cli/dist/

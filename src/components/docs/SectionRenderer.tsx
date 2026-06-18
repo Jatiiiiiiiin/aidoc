@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { Section } from "@/lib/schema";
 import { TextSection } from "./TextSection";
 import { CodeSection } from "./CodeSection";
@@ -37,8 +37,6 @@ export const SectionRenderer: React.FC<SectionRendererProps> = ({ section }) => 
       );
   }
 };
-
-// sync doc pipeline
 
 // sync doc pipeline
 

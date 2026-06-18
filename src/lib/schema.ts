@@ -54,9 +54,3 @@ export type TableContent = z.infer<typeof TableContentSchema>;
 export type BulletsContent = z.infer<typeof BulletsContentSchema>;
 export type Section = z.infer<typeof SectionSchema>;
 export type Doc = z.infer<typeof DocSchema>;
-
-// sync doc pipeline
-
-// sync doc pipeline
-
-// sync doc pipeline

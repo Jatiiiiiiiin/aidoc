@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { TextContent } from "@/lib/schema";
 import { parseMarkdownBlocks } from "@/lib/markdown";
 
@@ -21,8 +21,6 @@ export const TextSection: React.FC<TextSectionProps> = ({ title, content }) => {
     </div>
   );
 };
-
-// sync doc pipeline
 
 // sync doc pipeline
 

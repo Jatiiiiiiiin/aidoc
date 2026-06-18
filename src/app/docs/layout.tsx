@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Terminal, Cpu, Search, FileText, Compass, ChevronDown, Check, RefreshCw, Sun, Moon } from "lucide-react";
+import { Terminal, Cpu, Search, FileText, Check, RefreshCw, Sun, Moon } from "lucide-react";
 import { mockDocsRegistry } from "@/lib/mockDoc";
 import { supabase } from "@/lib/supabase";
 import { normalizeDoc } from "@/lib/normalizer";
@@ -27,7 +27,6 @@ export default function DocsLayout({
 }) {
   const pathname = usePathname();
   const [dbDocs, setDbDocs] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [theme, setTheme] = useState<"light" | "dark">("dark");
 
   useEffect(() => {
@@ -62,8 +61,6 @@ export default function DocsLayout({
         }
       } catch (err) {
         console.warn("Supabase fetch failed, utilizing mock registry:", err);
-      } finally {
-        setLoading(false);
       }
     }
     fetchDocs();
@@ -456,8 +453,3 @@ export default function DocsLayout({
   );
 }
 
-// sync doc pipeline
-
-// sync doc pipeline
-
-// sync doc pipeline

@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { TableContent } from "@/lib/schema";
 import { renderFormattedText } from "@/lib/markdown";
 
@@ -60,8 +60,6 @@ export const TableSection: React.FC<TableSectionProps> = ({ title, content }) =>
     </div>
   );
 };
-
-// sync doc pipeline
 
 // sync doc pipeline
 

@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { BulletsContent } from "@/lib/schema";
 import { ChevronRight } from "lucide-react";
 import { renderFormattedText } from "@/lib/markdown";
@@ -32,8 +32,6 @@ export const BulletsSection: React.FC<BulletsSectionProps> = ({
     </div>
   );
 };
-
-// sync doc pipeline
 
 // sync doc pipeline
 

@@ -107,8 +107,3 @@ export const mockDocsRegistry: Record<string, Doc> = {
   }
 };
 
-// sync doc pipeline
-
-// sync doc pipeline
-
-// sync doc pipeline

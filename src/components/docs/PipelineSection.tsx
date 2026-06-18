@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { PipelineContent } from "@/lib/schema";
 import { Play, CheckCircle2, XCircle, AlertCircle, ArrowRight } from "lucide-react";
 import { renderFormattedText } from "@/lib/markdown";
@@ -89,8 +89,6 @@ export const PipelineSection: React.FC<PipelineSectionProps> = ({
     </div>
   );
 };
-
-// sync doc pipeline
 
 // sync doc pipeline
 

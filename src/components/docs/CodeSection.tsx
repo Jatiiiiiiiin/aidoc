@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState } from "react";
 import { CodeContent } from "@/lib/schema";
@@ -116,8 +116,6 @@ export const CodeSection: React.FC<CodeSectionProps> = ({
     </div>
   );
 };
-
-// sync doc pipeline
 
 // sync doc pipeline
 

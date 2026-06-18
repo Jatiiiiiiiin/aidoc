@@ -179,9 +179,3 @@ export function normalizeDoc(dbDoc: any): Doc | null {
     return null;
   }
 }
-
-// sync doc pipeline
-
-// sync doc pipeline
-
-// sync doc pipeline
