@@ -28,8 +28,10 @@ export default function DocsLayout({
   const pathname = usePathname();
   const [dbDocs, setDbDocs] = useState<any[]>([]);
   const [theme, setTheme] = useState<"light" | "dark">("dark");
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     const savedTheme = localStorage.getItem("theme") as "light" | "dark";
     if (savedTheme) {
       setTheme(savedTheme);
@@ -336,9 +338,10 @@ export default function DocsLayout({
             onClick={toggleTheme}
             className="flex h-8 w-8 items-center justify-center rounded-full border border-border-subtle bg-surface-2 text-text-muted hover:text-foreground transition-colors cursor-pointer"
             aria-label="Toggle Theme"
-            title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+            title={mounted ? `Switch to ${theme === 'dark' ? 'light' : 'dark'} mode` : "Toggle Theme"}
+            suppressHydrationWarning
           >
-            {theme === "dark" ? (
+            {!mounted || theme === "dark" ? (
               <Sun className="h-4 w-4 text-amber-500" />
             ) : (
               <Moon className="h-4 w-4 text-primary" />
