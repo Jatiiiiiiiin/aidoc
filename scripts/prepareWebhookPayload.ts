@@ -24,6 +24,11 @@ function main() {
 
   const changedFiles = JSON.parse(fs.readFileSync(changedFilesPath, "utf-8"));
 
+  if (!Array.isArray(changedFiles) || changedFiles.length === 0) {
+    console.log("No changed source files detected. Skipping payload generation.");
+    process.exit(0);
+  }
+
   // Fetch GitHub environment variables
   const repo = process.env.GITHUB_REPOSITORY || "owner/repo";
   const branch = process.env.GITHUB_REF_NAME || "main";

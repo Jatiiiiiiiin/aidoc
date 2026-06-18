@@ -31,7 +31,6 @@ const IGNORED_DIR_PATTERNS = [
   /^\.next\//,
   /^dist\//,
   /^docs-config\//,
-  /^scripts\//,
   /^public\//,
   /^\.git\//
 ];

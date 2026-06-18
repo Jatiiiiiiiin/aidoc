@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Terminal, Cpu, Search, FileText, Compass, ChevronDown, Check, RefreshCw } from "lucide-react";
+import { Terminal, Cpu, Search, FileText, Compass, ChevronDown, Check, RefreshCw, Sun, Moon } from "lucide-react";
 import { mockDocsRegistry } from "@/lib/mockDoc";
 import { supabase } from "@/lib/supabase";
 import { normalizeDoc } from "@/lib/normalizer";
@@ -28,6 +28,24 @@ export default function DocsLayout({
   const pathname = usePathname();
   const [dbDocs, setDbDocs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [theme, setTheme] = useState<"light" | "dark">("dark");
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem("theme") as "light" | "dark";
+    if (savedTheme) {
+      setTheme(savedTheme);
+      document.documentElement.classList.toggle("dark", savedTheme === "dark");
+    } else {
+      document.documentElement.classList.add("dark");
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    const newTheme = theme === "dark" ? "light" : "dark";
+    setTheme(newTheme);
+    localStorage.setItem("theme", newTheme);
+    document.documentElement.classList.toggle("dark", newTheme === "dark");
+  };
 
   // Fetch docs list from Supabase, or fall back to mock registry
   useEffect(() => {
@@ -58,13 +76,20 @@ export default function DocsLayout({
     dbDocs.forEach((doc) => {
       const normalized = normalizeDoc(doc);
       const docSlug = doc.slug && doc.slug.trim() !== "" ? doc.slug : slugify(doc.title);
+      const contentObj = typeof doc.content === "string"
+        ? JSON.parse(doc.content)
+        : doc.content;
+      const raw = contentObj?.raw || {};
+      const repo = doc.repo || raw.repo || null;
+      const file_path = doc.file_path || raw.file_path || null;
+
       list.push({
         id: doc.id,
         slug: docSlug,
         title: normalized?.title || doc.title,
         sections: normalized?.sections || [],
-        repo: doc.repo,
-        file_path: doc.file_path,
+        repo: repo,
+        file_path: file_path,
         created_at: doc.created_at,
         originalDoc: doc,
       });
@@ -89,14 +114,12 @@ export default function DocsLayout({
     return list;
   }, [dbDocs]);
 
-  // Group docs by repo/file_path or slug to support versioning
+  // Group docs strictly by slug (the repository slug) to ensure only one document per repository
   const versionedDocs = React.useMemo(() => {
     const groups: { [key: string]: any[] } = {};
 
     docsList.forEach((item) => {
-      const groupKey = (item.repo && item.file_path)
-        ? `${item.repo}/${item.file_path}`
-        : item.slug;
+      const groupKey = item.slug;
       
       if (!groups[groupKey]) {
         groups[groupKey] = [];
@@ -231,12 +254,15 @@ export default function DocsLayout({
       {/* Top Banner Navigation */}
       <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-border-subtle bg-surface-1/80 px-6 backdrop-blur-md">
         <div className="flex items-center gap-4">
-          <Link href="/docs/wearable-health-insights-pipeline" className="flex items-center gap-2">
-            <div className="relative flex h-8 w-8 items-center justify-center rounded bg-primary text-white">
-              <Terminal className="h-4 w-4" />
+          <Link href={`/docs/${versionedDocs[0]?.slug || 'wearable-health-insights-pipeline'}`} className="flex items-center gap-2 group">
+            <div className="relative flex h-8 w-8 items-center justify-center transition-transform group-hover:scale-105">
+              <svg viewBox="0 0 100 100" className="h-7 w-7 text-primary fill-none stroke-current" strokeWidth="14" strokeLinecap="round">
+                <path d="M 72 32 A 32 32 0 1 0 72 68" />
+                <circle cx="76" cy="50" r="7.5" className="fill-primary stroke-none" />
+              </svg>
             </div>
-            <span className="text-md font-bold tracking-tight text-foreground">
-              Cobebyte Sol. AI Docs
+            <span className="text-md font-bold tracking-wider text-foreground font-sans uppercase">
+              CODEBYTE
             </span>
           </Link>
           <span className="hidden rounded border border-border-subtle bg-surface-2 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-text-muted md:inline">
@@ -309,6 +335,19 @@ export default function DocsLayout({
               </>
             )}
           </div>
+          <button
+            onClick={toggleTheme}
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-border-subtle bg-surface-2 text-text-muted hover:text-foreground transition-colors cursor-pointer"
+            aria-label="Toggle Theme"
+            title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+          >
+            {theme === "dark" ? (
+              <Sun className="h-4 w-4 text-amber-500" />
+            ) : (
+              <Moon className="h-4 w-4 text-primary" />
+            )}
+          </button>
+
           <div className="flex items-center gap-2 rounded-full border border-border-subtle bg-surface-2 px-3 py-1 text-xs text-text-muted">
             <Cpu className="h-3.5 w-3.5 text-secondary animate-pulse" />
             <span className="font-mono text-[10px] uppercase">AI Layer: Active</span>

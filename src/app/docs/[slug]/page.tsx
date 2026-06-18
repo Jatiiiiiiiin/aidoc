@@ -39,12 +39,11 @@ async function getDocVersions(slug: string) {
     console.warn("Error fetching all docs for version check:", err);
   }
 
-  // Group and find matching group for this slug
+  // Group and find matching group for this slug strictly by slug
   const groups: { [key: string]: any[] } = {};
   dbDocs.forEach((doc) => {
-    const groupKey = (doc.repo && doc.file_path) 
-      ? `${doc.repo}/${doc.file_path}` 
-      : (doc.slug && doc.slug.trim() !== "" ? doc.slug : slugify(doc.title));
+    const docSlug = doc.slug && doc.slug.trim() !== "" ? doc.slug : slugify(doc.title);
+    const groupKey = docSlug;
       
     if (!groups[groupKey]) {
       groups[groupKey] = [];
