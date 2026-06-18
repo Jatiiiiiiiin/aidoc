@@ -2,7 +2,7 @@ import * as fs from "fs";
 
 const args = process.argv.slice(2);
 let responsePath = "";
-let maxRetries = 3;
+let maxRetries = 5;
 
 for (let i = 0; i < args.length; i++) {
   if (args[i] === "--response" && i + 1 < args.length) {
