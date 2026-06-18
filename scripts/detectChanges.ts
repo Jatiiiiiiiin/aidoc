@@ -24,6 +24,15 @@ for (let i = 0; i < args.length; i++) {
 // Allowed source file extensions
 const ALLOWED_EXTENSIONS = new Set([".ts", ".tsx", ".js", ".jsx"]);
 
+// High-priority directories — these files are sorted to the front of the output
+// so n8n processes the most architecturally significant files first
+const HIGH_PRIORITY_PATTERNS = [
+  /^src\/app\/api\//,
+  /^src\/services\//,
+  /^src\/lib\//,
+  /^scripts\//,
+];
+
 // Directories to ignore
 const IGNORED_DIR_PATTERNS = [
   /^node_modules\//,
@@ -101,9 +110,16 @@ function filterSourceFiles(files: string[]): string[] {
   });
 }
 
+function prioritizeFiles(files: string[]): string[] {
+  const normalized = files.map((f) => f.replace(/\\/g, "/"));
+  const high = normalized.filter((f) => HIGH_PRIORITY_PATTERNS.some((p) => p.test(f)));
+  const rest = normalized.filter((f) => !HIGH_PRIORITY_PATTERNS.some((p) => p.test(f)));
+  return [...high, ...rest];
+}
+
 function main() {
   const allChanged = getChangedFiles(baseCommit, headCommit);
-  const filtered = filterSourceFiles(allChanged);
+  const filtered = prioritizeFiles(filterSourceFiles(allChanged));
 
   console.log(`Detected ${allChanged.length} total changed files.`);
   console.log(`Filtered down to ${filtered.length} source code files:`);
