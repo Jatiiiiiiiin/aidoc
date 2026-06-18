@@ -358,13 +358,70 @@ Node `status` values: `idle | running | success | error`
 
 ## Viewer App
 
-**`src/app/docs/[slug]/page.tsx`** — server component, fetches all rows for a slug from Supabase, groups them as versions, passes to client.
+The viewer is a Next.js app (App Router) that reads docs from Supabase and renders them.
 
-**`src/app/docs/layout.tsx`** — client component, renders the sidebar nav with all docs fetched from Supabase (falls back to `mockDocsRegistry`), search, theme toggle.
+### Entry point
 
-**`src/components/docs/DocViewerClient.tsx`** — renders the active doc version with version switcher, per-section copy/regen controls, and `.docx` export.
+**`src/app/page.tsx`** — server component. Queries Supabase for the first doc (ordered by `created_at`) and redirects to `/docs/{slug}`. Falls back to `/docs/wearable-health-insights-pipeline` if the query fails.
 
-**`src/lib/normalizer.ts`** — if n8n writes content in a non-standard shape (e.g. `metadata.sections` instead of top-level `sections`), the normalizer auto-repairs it before rendering.
+### Doc page
+
+**`src/app/docs/[slug]/page.tsx`** — server component. Fetches all Supabase rows, groups them by slug, assigns version labels (`v1`, `v2`, ..., or a custom `version` field from the content JSON), normalizes each via `src/lib/normalizer.ts`, and passes the version list to `DocViewerClient`. Accepts a `?v=` query param to pre-select a version. Falls back to `mockDocsRegistry` if no Supabase row matches.
+
+### Layout / sidebar
+
+**`src/app/docs/layout.tsx`** — client component. Renders the top nav bar (logo, search, theme toggle, AI Layer status badge) and the left sidebar (doc list, section sub-nav, system status panel). Fetches the full doc list from Supabase on mount; falls back to `mockDocsRegistry`. Groups rows by slug into versioned entries. Search covers doc titles and section titles across all docs.
+
+Theme preference is persisted to `localStorage` and applied via a `dark` class on `<html>`.
+
+### Doc viewer
+
+**`src/components/docs/DocViewerClient.tsx`** — client component. Renders the active doc version with:
+- Horizontal version toggle pill (only shown when `versions.length > 1`). Switching versions pushes `?v=` to the URL via `router.push`.
+- Per-section **Copy** and **Regen** controls. Regen simulates a 2-second async re-generation and updates the section content in local state (does not write back to Supabase).
+- **Download .docx** — serialises the active doc to a Word document using the `docx` library and triggers a browser download via `file-saver`.
+- Scroll-spy that highlights the active section in the right-side table-of-contents and broadcasts `active-section-change` / `active-doc-version-change` custom events so the sidebar stays in sync.
+- `RealTimeMetricsPlugin` — tracks page load engagement events (batched, no actual network call in dev).
+
+### Normalizer
+
+**`src/lib/normalizer.ts`** — repairs non-standard content shapes written by older n8n versions before passing to Zod validation:
+1. Lifts `metadata.sections` to top-level `sections` if the top-level array is missing.
+2. Auto-constructs sections from legacy `metadata` / `architecture` fields (overview, patterns, mermaid diagram, investor highlights, technical advantages, future scope).
+3. Sanitises `type` values to the allowed Zod enum (`text | code | pipeline | table | bullets`) by inspecting the `content` shape.
+4. Generates a stable `id` from the section `title` if none is present.
+
+Returns `null` if Zod validation still fails after all repairs.
+
+### Schema
+
+**`src/lib/schema.ts`** — Zod schemas and TypeScript types for the structured doc format. Key exports: `DocSchema`, `SectionSchema`, `Doc`, `Section`, `CodeContent`, `PipelineContent`, `TableContent`.
+
+### Supabase client
+
+**`src/lib/supabase.ts`** — thin wrapper around `@supabase/supabase-js`. Reads `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` from the environment. Logs a warning (does not throw) if either is missing so the mock fallback still works in local dev without credentials.
+
+### Mock fallback
+
+**`src/lib/mockDoc.ts`** — exports `mockDocsRegistry`, a `Record<string, Doc>` used as a fallback when Supabase is unavailable or returns no data.
+
+### Section renderers
+
+Components under `src/components/docs/` render individual section types:
+
+| File | Renders |
+|------|---------|
+| `SectionRenderer.tsx` | Dispatcher — picks the right component by `section.type` |
+| `TextSection.tsx` | `type: "text"` — markdown via `src/lib/markdown.tsx` |
+| `CodeSection.tsx` | `type: "code"` — syntax-highlighted code block |
+| `PipelineSection.tsx` | `type: "pipeline"` — node/edge flow diagram |
+| `TableSection.tsx` | `type: "table"` — responsive table |
+| `BulletsSection.tsx` | `type: "bullets"` — bulleted list |
+| `MermaidRenderer.tsx` | Mermaid diagram renderer (used by `CodeSection` for `language: "mermaid"`) |
+
+### Analytics plugin
+
+**`src/lib/RealTimeMetricsPlugin.ts`** — batched event tracker instantiated on doc load. All network calls (WebSocket, Redis, webhook, data warehouse) are stubbed with `console.log`; no external traffic is sent in the current build. Public API: `trackSectionRead`, `trackScrollDepth`, `trackBounceRate`, `calculateCoverageScore`, `trackPerformanceLatency`, `aggregateAttentionHeatmap`, `exportSessionReplay`, `exportToDataWarehouse`. Includes a circuit-breaker (CLOSED → OPEN → HALF_OPEN) for WebSocket failure handling.
 
 ---
 
