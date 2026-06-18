@@ -7,6 +7,7 @@ let filePath = "";
 let marker = "";
 let contentInline = "";
 let contentFile = "";
+let dryRun = false;
 
 for (let i = 0; i < args.length; i++) {
   if (args[i] === "--file" && i + 1 < args.length) {
@@ -21,26 +22,29 @@ for (let i = 0; i < args.length; i++) {
   } else if (args[i] === "--content-file" && i + 1 < args.length) {
     contentFile = args[i + 1];
     i++;
+  } else if (args[i] === "--dry-run") {
+    dryRun = true;
   }
 }
 
 export function updateFileSection(
   targetFile: string,
   sectionMarker: string,
-  newSectionContent: string
+  newSectionContent: string,
+  dryRun = false
 ): boolean {
   if (!fs.existsSync(targetFile)) {
     console.error(`Target file does not exist: ${targetFile}`);
     return false;
   }
 
+  if (!newSectionContent.trim()) {
+    console.error(`Error: new content for section "AUTO-${sectionMarker}" is empty. Aborting to avoid data loss.`);
+    return false;
+  }
+
   const fileContent = fs.readFileSync(targetFile, "utf-8");
 
-  // Regex matches:
-  // <!-- AUTO-MARKER-START -->
-  // [existing content]
-  // <!-- AUTO-MARKER-END -->
-  // Note: Case-insensitive, ignores spacing differences within comments.
   const regexPattern = new RegExp(
     `(<!--\\s*AUTO-${sectionMarker}-START\\s*-->)([\\s\\S]*?)(<!--\\s*AUTO-${sectionMarker}-END\\s*-->)`,
     "i"
@@ -53,15 +57,13 @@ export function updateFileSection(
     return false;
   }
 
-  // Normalize newlines to prevent compounding padding issues
-  const formattedContent = newSectionContent.trim() 
-    ? `\n${newSectionContent.trim()}\n` 
-    : "\n";
+  const formattedContent = `\n${newSectionContent.trim()}\n`;
+  const updatedContent = fileContent.replace(regexPattern, `$1${formattedContent}$3`);
 
-  const updatedContent = fileContent.replace(
-    regexPattern,
-    `$1${formattedContent}$3`
-  );
+  if (dryRun) {
+    console.log(`[dry-run] Would update section "AUTO-${sectionMarker}" in ${targetFile}`);
+    return true;
+  }
 
   fs.writeFileSync(targetFile, updatedContent, "utf-8");
   console.log(`Successfully updated section "AUTO-${sectionMarker}" in ${targetFile}`);
@@ -89,7 +91,7 @@ function main() {
     }
   }
 
-  const success = updateFileSection(filePath, marker, finalContent);
+  const success = updateFileSection(filePath, marker, finalContent, dryRun);
   if (!success) {
     process.exit(1);
   }
