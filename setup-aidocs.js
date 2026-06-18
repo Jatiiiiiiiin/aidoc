@@ -80,8 +80,7 @@ async function setup() {
 
   console.log('\n🎉 Setup complete!');
   console.log('Next steps:');
-  console.log('1. Ensure you have the N8N_DOCS_WEBHOOK_URL secret set in this repository\'s GitHub Actions settings.');
-  console.log('2. Commit and push these new files to trigger your first documentation build!');
+  console.log('1. Commit and push these new files to trigger your first documentation build!');
 }
 
 setup();
