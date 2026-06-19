@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useEffect, useState } from "react";
 
@@ -9,6 +9,23 @@ interface MermaidRendererProps {
 export const MermaidRenderer: React.FC<MermaidRendererProps> = ({ chart }) => {
   const [svg, setSvg] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
+  const [isDark, setIsDark] = useState(true);
+
+  // Detect and track theme changes
+  useEffect(() => {
+    setIsDark(document.documentElement.classList.contains("dark"));
+
+    const observer = new MutationObserver(() => {
+      setIsDark(document.documentElement.classList.contains("dark"));
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -20,17 +37,27 @@ export const MermaidRenderer: React.FC<MermaidRendererProps> = ({ chart }) => {
       try {
         mermaid.initialize({
           startOnLoad: false,
-          theme: "dark",
+          theme: isDark ? "dark" : "default",
           securityLevel: "loose",
-          themeVariables: {
-            background: "#131315",
-            primaryColor: "#6366f1",
-            primaryTextColor: "#e5e1e4",
-            lineColor: "#27272a",
-            textColor: "#e5e1e4",
-            nodeBorder: "#27272a",
-            mainBkg: "#18181b",
-          }
+          themeVariables: isDark
+            ? {
+                background: "transparent",
+                primaryColor: "#643ada",
+                primaryTextColor: "#ffffff",
+                lineColor: "#444444",
+                textColor: "#ffffff",
+                nodeBorder: "#333333",
+                mainBkg: "#111111",
+              }
+            : {
+                background: "transparent",
+                primaryColor: "#643ada",
+                primaryTextColor: "#111827",
+                lineColor: "#d1d5db",
+                textColor: "#111827",
+                nodeBorder: "#e5e7eb",
+                mainBkg: "#f3f4f6",
+              },
         });
 
         // Clean up common LLM syntax errors in Mermaid charts (e.g. -->|label|> B)
@@ -103,7 +130,7 @@ export const MermaidRenderer: React.FC<MermaidRendererProps> = ({ chart }) => {
         script.removeEventListener("load", handleLoad);
       }
     };
-  }, [chart]);
+  }, [chart, isDark]);
 
   if (error) {
     return (
@@ -132,7 +159,3 @@ export const MermaidRenderer: React.FC<MermaidRendererProps> = ({ chart }) => {
     />
   );
 };
-
-// sync doc pipeline
-
-// sync doc pipeline

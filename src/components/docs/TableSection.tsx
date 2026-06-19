@@ -1,4 +1,4 @@
-﻿import React from "react";
+import React from "react";
 import { TableContent } from "@/lib/schema";
 import { renderFormattedText } from "@/lib/markdown";
 
@@ -16,7 +16,7 @@ export const TableSection: React.FC<TableSectionProps> = ({ title, content }) =>
       <h2 className="text-2xl font-bold tracking-tight text-foreground">
         {title}
       </h2>
-      <div className="overflow-hidden rounded-md border border-border-subtle bg-surface-1">
+      <div className="w-full max-w-full overflow-hidden rounded-md border border-border-subtle bg-surface-1">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm border-collapse">
             <thead>

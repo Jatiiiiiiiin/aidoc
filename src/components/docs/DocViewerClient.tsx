@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -323,7 +323,7 @@ export const DocViewerClient: React.FC<DocViewerClientProps> = ({
   return (
     <div className="flex gap-8 items-start">
       {/* Main Documentation Area */}
-      <div className="flex-1 space-y-12">
+      <div className="flex-1 min-w-0 space-y-12">
         {/* Doc Header */}
         <div className="space-y-4">
           <div className="flex items-center justify-between flex-wrap gap-2">

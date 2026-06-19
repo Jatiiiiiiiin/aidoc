@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState } from "react";
 import { CodeContent } from "@/lib/schema";
@@ -39,7 +39,7 @@ export const CodeSection: React.FC<CodeSectionProps> = ({
           {title}
         </h2>
       </div>
-      <div className="overflow-hidden rounded-md border border-border-subtle bg-surface-1 font-mono text-sm glow-indigo">
+      <div className="w-full max-w-xl overflow-hidden rounded-md border border-border-subtle bg-surface-1 font-mono text-sm glow-indigo">
         {/* Terminal Header */}
         <div className="flex items-center justify-between border-b border-border-subtle bg-surface-2 px-4 py-2 text-xs text-text-muted">
           <div className="flex items-center gap-4">

@@ -162,9 +162,160 @@ export function renderFormattedText(text: string): React.ReactNode[] {
 }
 
 /**
- * Parses markdown text block-by-block and renders appropriate React components.
- * Supports: subheadings, lists, blockquotes, horizontal rules, paragraphs, and callouts.
+ * Preprocesses markdown content to detect and wrap unfenced code blocks
+ * (e.g. language name on a single line followed by code statements) with triple backticks.
  */
+function preprocessMarkdown(content: string): string {
+  if (!content) return content;
+
+  const lines = content.split("\n");
+  const processedLines: string[] = [];
+  
+  const KNOWN_LANGUAGES = new Set([
+    "javascript", "typescript", "python", "bash", "json", 
+    "html", "css", "yaml", "yml", "sql", "sh", "mermaid", 
+    "markdown", "js", "ts", "py", "go", "rust", "c", "cpp", 
+    "java", "csharp", "ruby", "php", "dockerfile", "makefile", 
+    "powershell", "xml"
+  ]);
+
+  let inFencedBlock = false;
+  let inUnfencedBlock = false;
+  let unfencedLang = "";
+
+  const isLineProbablyProse = (trimmed: string): boolean => {
+    if (!trimmed) return false;
+    
+    // Common programming indicators. If it contains these, it's NOT prose.
+    const hasCodeKeywords = 
+      trimmed.includes("const ") ||
+      trimmed.includes("let ") ||
+      trimmed.includes("var ") ||
+      trimmed.includes("import ") ||
+      trimmed.includes("export ") ||
+      trimmed.includes("function ") ||
+      trimmed.includes("def ") ||
+      trimmed.includes("class ") ||
+      trimmed.includes("return ") ||
+      trimmed.includes(" = ") ||
+      trimmed.includes(" => ") ||
+      trimmed.endsWith(";") ||
+      trimmed.endsWith("{") ||
+      trimmed.endsWith("}") ||
+      trimmed.endsWith("]") ||
+      trimmed.endsWith(")") ||
+      trimmed.includes("console.log") ||
+      trimmed.startsWith("print(") ||
+      trimmed.includes("sys.") ||
+      trimmed.includes("process.");
+      
+    if (hasCodeKeywords) return false;
+    
+    const startsWithCapital = /^[A-Z]/.test(trimmed);
+    const hasMultipleWords = trimmed.split(/\s+/).length > 2;
+    
+    return startsWithCapital && hasMultipleWords;
+  };
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+
+    // 1. If we see a fenced block marker, toggle the state
+    if (trimmed.startsWith("```")) {
+      if (inUnfencedBlock) {
+        processedLines.push("```");
+        inUnfencedBlock = false;
+      }
+      inFencedBlock = !inFencedBlock;
+      processedLines.push(line);
+      continue;
+    }
+
+    if (inFencedBlock) {
+      processedLines.push(line);
+      continue;
+    }
+
+    // 3. Check for unfenced block start
+    if (!inUnfencedBlock) {
+      const lowerTrimmed = trimmed.toLowerCase();
+      if (KNOWN_LANGUAGES.has(lowerTrimmed)) {
+        // Look ahead to see if the next non-empty lines look like code
+        let looksLikeCode = false;
+        for (let j = i + 1; j < Math.min(lines.length, i + 5); j++) {
+          const nextTrimmed = lines[j].trim();
+          if (nextTrimmed === "") continue;
+
+          // If the next non-empty line starts with a markdown element, it's not code
+          if (
+            nextTrimmed.startsWith("##") || 
+            nextTrimmed.startsWith("---") || 
+            nextTrimmed.startsWith("- ") || 
+            nextTrimmed.startsWith("* ") || 
+            /^\d+\.\s/.test(nextTrimmed)
+          ) {
+            break;
+          }
+
+          if (
+            nextTrimmed.includes("=") ||
+            nextTrimmed.includes("(") ||
+            nextTrimmed.includes("{") ||
+            nextTrimmed.includes("[") ||
+            nextTrimmed.includes(";") ||
+            nextTrimmed.includes(":") ||
+            nextTrimmed.includes("import ") ||
+            nextTrimmed.includes("export ") ||
+            nextTrimmed.includes("const ") ||
+            nextTrimmed.includes("let ") ||
+            nextTrimmed.includes("var ") ||
+            nextTrimmed.includes("def ") ||
+            nextTrimmed.includes("class ") ||
+            nextTrimmed.includes("function ") ||
+            nextTrimmed.includes("return ") ||
+            nextTrimmed.includes("//") ||
+            nextTrimmed.startsWith("from ") ||
+            nextTrimmed.startsWith("print(") ||
+            nextTrimmed.startsWith("with ")
+          ) {
+            looksLikeCode = true;
+            break;
+          }
+        }
+
+        if (looksLikeCode) {
+          inUnfencedBlock = true;
+          unfencedLang = lowerTrimmed;
+          processedLines.push("```" + unfencedLang);
+          continue;
+        }
+      }
+    } else {
+      // 4. Check if we should close the unfenced block
+      if (
+        trimmed.startsWith("##") || 
+        trimmed.startsWith("- ") || 
+        trimmed.startsWith("* ") || 
+        /^\d+\.\s/.test(trimmed) || 
+        trimmed === "---" || 
+        isLineProbablyProse(trimmed)
+      ) {
+        processedLines.push("```");
+        inUnfencedBlock = false;
+      }
+    }
+
+    processedLines.push(line);
+  }
+
+  if (inUnfencedBlock) {
+    processedLines.push("```");
+  }
+
+  return processedLines.join("\n");
+}
+
 export function parseMarkdownBlocks(content: any): React.ReactNode[] {
   if (!content) return [];
   if (typeof content !== "string") {
@@ -173,6 +324,8 @@ export function parseMarkdownBlocks(content: any): React.ReactNode[] {
     } catch (e) {
       content = String(content);
     }
+  } else {
+    content = preprocessMarkdown(content);
   }
 
   const lines = content.split("\n");
@@ -336,7 +489,7 @@ export function parseMarkdownBlocks(content: any): React.ReactNode[] {
         const indentClass = getIndentClass();
         
         blocks.push(
-          <div key={`fenced-code-${i}`} className={`my-4 overflow-hidden rounded-md border border-border-subtle bg-surface-1 font-mono text-sm glow-indigo ${indentClass}`}>
+          <div key={`fenced-code-${i}`} className={`w-full max-w-xl my-4 overflow-hidden rounded-md border border-border-subtle bg-surface-1 font-mono text-sm glow-indigo ${indentClass}`}>
             <div className="flex items-center justify-between border-b border-border-subtle bg-surface-2 px-4 py-2 text-xs text-text-muted">
               <span>{lang || "code"}</span>
               <CopyButton text={codeText} />
@@ -463,7 +616,7 @@ export function parseMarkdownBlocks(content: any): React.ReactNode[] {
     const lang = codeBlockLanguage;
     const indentClass = getIndentClass();
     blocks.push(
-      <div key="fenced-code-final" className={`my-4 overflow-hidden rounded-md border border-border-subtle bg-surface-1 font-mono text-sm glow-indigo ${indentClass}`}>
+      <div key="fenced-code-final" className={`w-full max-w-xl my-4 overflow-hidden rounded-md border border-border-subtle bg-surface-1 font-mono text-sm glow-indigo ${indentClass}`}>
         <div className="flex items-center justify-between border-b border-border-subtle bg-surface-2 px-4 py-2 text-xs text-text-muted">
           <span>{lang || "code"}</span>
           <CopyButton text={codeText} />
