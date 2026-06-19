@@ -1,5 +1,7 @@
 "use client";
 
+// Trigger documentation regeneration pipeline
+// Trigger documentation regeneration pipeline
 import React, { useState } from "react";
 import { CodeContent } from "@/lib/schema";
 import { Check, Copy, Terminal, Image as ImageIcon } from "lucide-react";
