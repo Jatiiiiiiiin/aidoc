@@ -150,6 +150,7 @@ function sendWebhook(payload: object, webhookUrl: string): Promise<void> {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "x-github-event": "push",
         "Content-Length": Buffer.byteLength(body),
       },
     };
@@ -236,43 +237,36 @@ async function main() {
     return;
   }
 
-  // Build a single bounded "codebase digest" so n8n can document the whole repo in ONE AI pass
-  // (instead of looping file-by-file). Contents are read locally — the repo is already on disk.
-  const MAX_TOTAL_CHARS = 60000; // overall budget (~15k tokens) to stay within model context
-  const MAX_FILE_CHARS = 6000; // per-file cap so one large file can't crowd out the rest
-  let digest = "";
-  let included = 0;
-  for (const file of selected) {
-    if (digest.length >= MAX_TOTAL_CHARS) break;
-    let content = "";
-    try {
-      content = fs.readFileSync(file, "utf-8");
-    } catch {
-      continue;
-    }
-    if (!content.trim()) continue;
-    if (content.length > MAX_FILE_CHARS) {
-      content = content.slice(0, MAX_FILE_CHARS) + "\n/* ...truncated... */\n";
-    }
-    const block = `\n// ===== FILE: ${file.replace(/\\/g, "/")} =====\n${content}\n`;
-    if (digest.length + block.length > MAX_TOTAL_CHARS) break;
-    digest += block;
-    included++;
-  }
-
-  console.log(`Bundled ${included} file(s) into a ${digest.length}-char codebase digest.`);
+  // The payload format now strictly mimics a standard GitHub Push Event
+  // so that the exact same webhook handler can process it seamlessly.
+  const commitSha = execSync("git rev-parse HEAD", { encoding: "utf-8" }).trim();
 
   const payload = {
-    repo,
-    branch,
-    changed_files: selected,
-    file_list: selected,
-    file_count: included,
-    codebase: digest,
-    init: true,
+    ref: `refs/heads/${branch}`,
+    before: "0000000000000000000000000000000000000000",
+    after: commitSha,
+    repository: {
+      full_name: repo,
+      default_branch: branch,
+    },
+    commits: [
+      {
+        id: commitSha,
+        message: "feat: initial aidoc connection (bulk add)",
+        added: selected,
+        removed: [],
+        modified: []
+      }
+    ],
+    head_commit: {
+      id: commitSha,
+      added: selected,
+      removed: [],
+      modified: []
+    }
   };
 
-  console.log("\nSending initialization payload to n8n...");
+  console.log("\nSending initialization payload (mock push event) to n8n...");
   await sendWebhook(payload, webhookUrl);
   console.log("\nInitialization complete. Document will be generated shortly.");
 }

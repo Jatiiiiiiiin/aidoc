@@ -111,9 +111,11 @@ function main() {
   } else {
     // If no input file, check stdin or default to empty
     try {
-      const stdinBuffer = fs.readFileSync(0);
-      if (stdinBuffer.length > 0) {
-        changedFiles = JSON.parse(stdinBuffer.toString("utf-8"));
+      if (!process.stdin.isTTY) {
+        const stdinBuffer = fs.readFileSync(0);
+        if (stdinBuffer.length > 0) {
+          changedFiles = JSON.parse(stdinBuffer.toString("utf-8"));
+        }
       }
     } catch (e) {
       // No stdin, keep empty

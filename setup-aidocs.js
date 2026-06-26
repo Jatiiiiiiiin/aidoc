@@ -84,10 +84,13 @@ async function setup() {
   console.log('\n✅ Setup complete!');
   console.log('\nNext steps:');
   console.log('  1. Run: npm install -D tsx  (if not already installed)');
-  console.log('  2. Commit the new files:');
+  console.log('  2. In your GitHub Repository Settings > Secrets and variables > Actions, add:');
+  console.log('     AIDOC_WEBHOOK_URL = <your aidoc Next.js API URL>');
+  console.log('     AIDOC_WEBHOOK_SECRET = <your secure secret token>');
+  console.log('  3. Commit the new files:');
   console.log('     git add .github/ scripts/ docs-config/');
   console.log('     git commit -m "setup: connect to AI documentation pipeline"');
-  console.log('  3. Push to main:');
+  console.log('  4. Push to main:');
   console.log('     git push origin main');
   console.log('\nThe GitHub Actions workflow will trigger automatically and your docs will appear in the viewer.');
 }

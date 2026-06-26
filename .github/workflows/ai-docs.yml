@@ -43,7 +43,8 @@ jobs:
       - name: Initialize Documentation (first-time setup)
         if: steps.check_commit.outputs.mode == 'init'
         env:
-          N8N_WEBHOOK_URL: https://jatiiiiiin.app.n8n.cloud/webhook/ai-docs-pr-merge
+          AIDOC_WEBHOOK_URL: ${{ secrets.AIDOC_WEBHOOK_URL }}
+          AIDOC_WEBHOOK_SECRET: ${{ secrets.AIDOC_WEBHOOK_SECRET }}
         run: |
           echo "Scanning all source files in this repo and sending to n8n for initial doc generation..."
           npx tsx scripts/initializeDocs.ts
@@ -64,17 +65,20 @@ jobs:
       - name: Send Payload to n8n Webhook
         if: steps.check_commit.outputs.mode == 'update'
         env:
-          N8N_WEBHOOK_URL: https://jatiiiiiin.app.n8n.cloud/webhook/ai-docs-pr-merge
+          AIDOC_WEBHOOK_URL: ${{ secrets.AIDOC_WEBHOOK_URL }}
+          AIDOC_WEBHOOK_SECRET: ${{ secrets.AIDOC_WEBHOOK_SECRET }}
         run: |
           FILE_COUNT=$(node -e "console.log(JSON.parse(require('fs').readFileSync('changed-files.json')).length)")
           if [ "$FILE_COUNT" -gt 0 ]; then
-            if [ -z "$N8N_WEBHOOK_URL" ]; then
-              echo "Error: N8N_DOCS_WEBHOOK_URL secret is not set. Skipping webhook."
+            if [ -z "$AIDOC_WEBHOOK_URL" ]; then
+              echo "Error: AIDOC_WEBHOOK_URL secret is not set. Skipping webhook."
               exit 0
             fi
-            echo "Sending webhook trigger to n8n..."
-            curl -sS -X POST "$N8N_WEBHOOK_URL" \
+            echo "Sending webhook trigger to AIDOC Next.js API..."
+            curl -sS -X POST "$AIDOC_WEBHOOK_URL" \
               -H "Content-Type: application/json" \
+              -H "Authorization: Bearer $AIDOC_WEBHOOK_SECRET" \
+              -H "x-github-event: push" \
               -d @n8n-payload.json \
               -o n8n-response.json
 

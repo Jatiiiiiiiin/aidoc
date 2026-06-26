@@ -53,11 +53,28 @@ function main() {
   }
 
   const payload = {
-    repo,
-    branch,
-    commit_sha: commitSha,
-    pr_number: prNumber,
-    changed_files: changedFiles
+    ref: `refs/heads/${branch}`,
+    before: "0000000000000000000000000000000000000000",
+    after: commitSha,
+    repository: {
+      full_name: repo,
+      default_branch: branch,
+    },
+    commits: [
+      {
+        id: commitSha,
+        message: "Filtered AI Docs update",
+        added: changedFiles, // Treating all changes as 'added' ensures they are processed
+        removed: [],
+        modified: []
+      }
+    ],
+    head_commit: {
+      id: commitSha,
+      added: changedFiles,
+      removed: [],
+      modified: []
+    }
   };
 
   const dir = path.dirname(outputPath);
