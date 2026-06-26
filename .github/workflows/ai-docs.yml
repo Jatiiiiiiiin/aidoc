@@ -28,16 +28,31 @@ jobs:
       - name: Install Project Dependencies
         run: npm ci || npm install --no-audit --no-fund
 
+      - name: Check commit type
+        id: check_commit
+        run: |
+          COMMIT_MSG=$(git log -1 --pretty=%B)
+          if echo "$COMMIT_MSG" | grep -q "setup: connect to AI documentation pipeline"; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "Setup commit detected — skipping doc generation."
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Detect Changed Source Files
+        if: steps.check_commit.outputs.skip != 'true'
         run: npx tsx scripts/detectChanges.ts --output changed-files.json
 
       - name: Prepare n8n Webhook Payload
+        if: steps.check_commit.outputs.skip != 'true'
         run: npx tsx scripts/prepareWebhookPayload.ts --input changed-files.json --output n8n-payload.json
 
       - name: Route Files to Doc Mappings
+        if: steps.check_commit.outputs.skip != 'true'
         run: npx tsx scripts/routeDocs.ts --input changed-files.json --output docs-mapping.json
 
       - name: Send Payload to n8n Webhook
+        if: steps.check_commit.outputs.skip != 'true'
         env:
           N8N_WEBHOOK_URL: https://jatiiiiiin.app.n8n.cloud/webhook/ai-docs-pr-merge
         run: |
