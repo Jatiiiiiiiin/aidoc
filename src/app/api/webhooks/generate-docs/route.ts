@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-// Trigger webhook test
+// Trigger webhook test 2
 import { createClient } from '@supabase/supabase-js';
 import { BedrockRuntimeClient, ConverseCommand } from '@aws-sdk/client-bedrock-runtime';
 
