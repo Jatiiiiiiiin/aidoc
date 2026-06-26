@@ -82,11 +82,11 @@ async function setup() {
   }
 
   console.log('\n✅ Setup complete!');
-  console.log('\nNext steps:');
-  console.log('  1. Run: npm install -D tsx  (if not already installed)');
+  console.log('Next steps:');
+  console.log('  1. Run: npm install -D tsx yaml minimatch  (if not already installed)');
   console.log('  2. In your GitHub Repository Settings > Secrets and variables > Actions, add:');
-  console.log('     AIDOC_WEBHOOK_URL = <your aidoc Next.js API URL>');
-  console.log('     AIDOC_WEBHOOK_SECRET = <your secure secret token>');
+  console.log('     AIDOC_WEBHOOK_URL = https://jatiiiiiin.app.n8n.cloud/webhook/ai-docs-pr-merge');
+  console.log('     AIDOC_WEBHOOK_SECRET = <your secure secret token, if applicable>');
   console.log('  3. Commit the new files:');
   console.log('     git add .github/ scripts/ docs-config/');
   console.log('     git commit -m "setup: connect to AI documentation pipeline"');
