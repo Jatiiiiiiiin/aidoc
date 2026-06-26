@@ -13,6 +13,7 @@ const filesToDownload = [
   { dest: 'scripts/validateWebhookResponse.ts', src: 'scripts/validateWebhookResponse.ts' },
   { dest: 'scripts/findExistingDocs.ts', src: 'scripts/findExistingDocs.ts' },
   { dest: 'scripts/updateSections.ts', src: 'scripts/updateSections.ts' },
+  { dest: 'scripts/initializeDocs.ts', src: 'scripts/initializeDocs.ts' },
   { dest: 'docs-config/routing.yaml', src: 'docs-config/routing.yaml' }
 ];
 

@@ -48,6 +48,7 @@ session_memory.json
 changed-files.json
 n8n-payload.json
 docs-mapping.json
+AI Docs Generator V2 (18).json
 
 # cli build output
 packages/cli/dist/

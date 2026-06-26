@@ -120,7 +120,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const httpResponse = $input.first().json;\n\nfunction safeGet(nodeName) {\n  try {\n    return $(nodeName).item.json;\n  } catch (e) {\n    return null;\n  }\n}\n\n// HTTP Request nodes (Fetch GitHub File) only output the response body --\n// file_path/repo/branch from the original trigger item do NOT carry through\n// automatically, so they must be re-fetched from whichever trigger path ran.\nconst upstream = safeGet(\"Validate Input\") || safeGet(\"Validate PR Merge Input\") || {};\n\nreturn [{\n  json: {\n    code: httpResponse.data,\n    file_path: upstream.file_path,\n    repo: upstream.repo,\n    branch: upstream.branch\n  }\n}];"
+        "jsCode": "const httpResponse = $input.first().json;\n\nfunction safeGet(nodeName) {\n  try {\n    return $(nodeName).item.json;\n  } catch (e) {\n    return null;\n  }\n}\n\n// HTTP Request nodes (Fetch GitHub File) only output the response body --\n// file_path/repo/branch from the original trigger item do NOT carry through\n// automatically, so they must be re-fetched from whichever trigger path ran.\nconst upstream = safeGet(\"Validate Input\") || safeGet(\"Validate PR Merge Input\") || {};\n\n// fullResponse:true gives {statusCode, headers, body}; neverError:true means\n// 404s land here instead of crashing — skip them so the loop moves to the next file.\nconst statusCode = httpResponse.statusCode || 0;\nif (statusCode >= 400) {\n  return [];\n}\n\nconst code = httpResponse.body || httpResponse.data;\nif (!code) {\n  return [];\n}\n\nreturn [{\n  json: {\n    code,\n    file_path: upstream.file_path,\n    repo: upstream.repo,\n    branch: upstream.branch\n  }\n}];"
       },
       "id": "fe2ed018-8fcd-4ef2-a5c0-e678ddb60aec",
       "name": "Code Cleaner",
@@ -264,7 +264,7 @@
     },
     {
       "parameters": {
-        "url": "=https://api.github.com/repos/{{$json.repo}}/contents/{{$json.file_path}}?ref={{$json.branch}}",
+        "url": "=https://api.github.com/repos/{{$json.repo}}/contents/{{$json.file_path.split('/').map(s => encodeURIComponent(s)).join('/')}}?ref={{$json.branch}}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -281,7 +281,9 @@
         "options": {
           "response": {
             "response": {
-              "responseFormat": "text"
+              "responseFormat": "text",
+              "fullResponse": true,
+              "neverError": true
             }
           }
         }
@@ -293,7 +295,8 @@
         33344
       ],
       "id": "ffd8b0d6-d0b6-49ba-970f-5298efdd8e57",
-      "name": "Fetch GitHub File"
+      "name": "Fetch GitHub File",
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
@@ -457,42 +460,6 @@
       "id": "34d13576-bd1f-4903-abd7-0b41b15d19c3",
       "name": "Fetch Existing Doc",
       "alwaysOutputData": true
-    },
-    {
-      "parameters": {
-        "authentication": "oAuth2",
-        "owner": {
-          "__rl": true,
-          "value": "https://github.com/jatiiiiiiiin",
-          "mode": "url"
-        },
-        "repository": {
-          "__rl": true,
-          "value": "dealer-app",
-          "mode": "list",
-          "cachedResultName": "dealer-app",
-          "cachedResultUrl": "https://github.com/Jatiiiiiiiin/dealer-app"
-        },
-        "events": [
-          "push"
-        ],
-        "options": {}
-      },
-      "type": "n8n-nodes-base.githubTrigger",
-      "typeVersion": 1,
-      "position": [
-        26976,
-        33344
-      ],
-      "id": "9dacfd95-b5a7-40ef-a854-a50abcb5556f",
-      "name": "Github Trigger",
-      "webhookId": "3cabbe3a-22c6-47ca-8c44-ec524c3f05d5",
-      "credentials": {
-        "githubOAuth2Api": {
-          "id": "VuGdKFAduZQQWeie",
-          "name": "GitHub OAuth2 API"
-        }
-      }
     },
     {
       "parameters": {
@@ -765,17 +732,6 @@
         [
           {
             "node": "Prepare Documentation Prompt",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Github Trigger": {
-      "main": [
-        [
-          {
-            "node": "Validate Input",
             "type": "main",
             "index": 0
           }

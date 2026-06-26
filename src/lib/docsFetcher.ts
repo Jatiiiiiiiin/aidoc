@@ -10,7 +10,7 @@ export async function fetchAllDocs() {
       .select("id, slug, title, content, description, repo, file_path, created_at")
       .order("created_at", { ascending: true });
 
-    if (!error && data && data.length > 0) {
+    if (!error && data) {
       return data;
     }
     if (error) {

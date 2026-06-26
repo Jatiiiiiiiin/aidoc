@@ -54,7 +54,7 @@ export default function DocsLayout({
         const res = await fetch("/api/docs");
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const data = await res.json();
-        if (data && data.length > 0) {
+        if (Array.isArray(data)) {
           setDbDocs(data);
         }
       } catch (err) {
