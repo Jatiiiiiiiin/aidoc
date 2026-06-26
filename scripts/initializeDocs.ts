@@ -45,7 +45,7 @@ const IGNORED_FILES = new Set([
   "package-lock.json",
 ]);
 
-const MAX_FILES = 15;
+const MAX_FILES = 200;
 
 function getAllSourceFiles(): string[] {
   try {
@@ -127,11 +127,31 @@ async function main() {
     process.env.N8N_WEBHOOK_URL ||
     "https://jatiiiiiin.app.n8n.cloud/webhook/ai-docs-pr-merge";
 
-  const repo = process.env.GITHUB_REPOSITORY || "";
-  const branch = process.env.GITHUB_REF_NAME || "main";
+  let repo = process.env.GITHUB_REPOSITORY || "";
+  let branch = process.env.GITHUB_REF_NAME || "";
 
   if (!repo) {
-    console.error("GITHUB_REPOSITORY is not set.");
+    try {
+      const gitUrl = execSync("git config --get remote.origin.url", { encoding: "utf-8" }).trim();
+      const match = gitUrl.match(/github\.com[/:]([^/]+\/[^/.]+)(?:\.git)?$/);
+      if (match) {
+        repo = match[1];
+      }
+    } catch (e) {
+      console.warn("Failed to detect repository name from git remote origin url:", e);
+    }
+  }
+
+  if (!branch) {
+    try {
+      branch = execSync("git rev-parse --abbrev-ref HEAD", { encoding: "utf-8" }).trim();
+    } catch {
+      branch = "main";
+    }
+  }
+
+  if (!repo) {
+    console.error("GITHUB_REPOSITORY is not set and could not be detected from git remote origin url.");
     process.exit(1);
   }
 
