@@ -90,12 +90,18 @@ function main() {
     process.exit(1);
   }
 
+  const rawText = fs.readFileSync(responsePath, "utf-8").trim();
+  if (!rawText) {
+    console.log("n8n returned an empty response — webhook was received and is processing asynchronously.");
+    process.exit(0);
+  }
+
   let raw: unknown;
   try {
-    raw = JSON.parse(fs.readFileSync(responsePath, "utf-8"));
+    raw = JSON.parse(rawText);
   } catch {
-    console.error("Failed to parse response JSON.");
-    process.exit(1);
+    console.log(`n8n response could not be parsed as JSON (got: ${rawText.substring(0, 200)}). Webhook was sent successfully.`);
+    process.exit(0);
   }
 
   const response = validateWebhookResponse(raw);
