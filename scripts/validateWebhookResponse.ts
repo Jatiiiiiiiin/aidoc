@@ -22,11 +22,16 @@ export interface WebhookResponse {
 }
 
 export function validateWebhookResponse(raw: unknown): WebhookResponse {
-  if (!raw || typeof raw !== "object") {
-    return { status: "error", error: "Response is not an object" };
+  let target = raw;
+  if (Array.isArray(target)) {
+    target = target[0];
   }
 
-  const obj = raw as Record<string, unknown>;
+  if (!target || typeof target !== "object") {
+    return { status: "error", error: "Response is not an object or array" };
+  }
+
+  const obj = target as Record<string, any>;
 
   if (obj.error) {
     return { status: "error", error: String(obj.error) };
@@ -34,6 +39,16 @@ export function validateWebhookResponse(raw: unknown): WebhookResponse {
 
   if (obj.skip === true || obj.isSkip === true) {
     return { status: "skip", slug: obj.slug as string | undefined };
+  }
+
+  if (obj.slug && (obj.content || obj.sections)) {
+    const sections = obj.content?.sections || obj.sections;
+    const sectionsCount = Array.isArray(sections) ? sections.length : 0;
+    return {
+      status: "success",
+      slug: String(obj.slug),
+      sectionsUpdated: sectionsCount,
+    };
   }
 
   if (obj.status === "success" || obj.sectionsUpdated !== undefined) {

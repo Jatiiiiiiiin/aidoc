@@ -48,9 +48,18 @@ jobs:
               exit 0
             fi
             echo "Sending webhook trigger to n8n..."
-            curl -X POST "$N8N_WEBHOOK_URL" \
+            curl -sS -X POST "$N8N_WEBHOOK_URL" \
               -H "Content-Type: application/json" \
-              -d @n8n-payload.json
+              -d @n8n-payload.json \
+              -o n8n-response.json
+            
+            echo "--- Webhook Response ---"
+            cat n8n-response.json
+            echo ""
+            echo "------------------------"
+            
+            echo "Validating response node output..."
+            npx tsx scripts/validateWebhookResponse.ts --response n8n-response.json
           else
             echo "No matching source file changes detected. Webhook skipped."
           fi
