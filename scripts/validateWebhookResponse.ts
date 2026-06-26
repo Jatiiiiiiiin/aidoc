@@ -31,18 +31,44 @@ export function validateWebhookResponse(raw: unknown): WebhookResponse {
     return { status: "error", error: "Response is not an object or array" };
   }
 
-  const obj = target as Record<string, any>;
+  let obj = target as Record<string, any>;
+
+  // Unwrap the n8n/Supabase { success, data: {...} } envelope so we can see the doc payload.
+  if (
+    obj.data &&
+    typeof obj.data === "object" &&
+    !Array.isArray(obj.data) &&
+    (obj.data.slug || obj.data.content || obj.data.title)
+  ) {
+    obj = obj.data as Record<string, any>;
+  }
 
   if (obj.error) {
     return { status: "error", error: String(obj.error) };
+  }
+
+  const content = obj.content && typeof obj.content === "object" ? obj.content : undefined;
+
+  // The AI doc step emits this sentinel title (and isError) when it cannot parse the model output.
+  if (
+    obj.isError === true ||
+    (content && content.isError === true) ||
+    obj.title === "Documentation Parsing Failed" ||
+    (content && content.title === "Documentation Parsing Failed")
+  ) {
+    const reason =
+      obj.description ||
+      (content && content.description) ||
+      "Documentation parsing failed (AI output could not be turned into valid JSON)";
+    return { status: "error", error: String(reason) };
   }
 
   if (obj.skip === true || obj.isSkip === true) {
     return { status: "skip", slug: obj.slug as string | undefined };
   }
 
-  if (obj.slug && (obj.content || obj.sections)) {
-    const sections = obj.content?.sections || obj.sections;
+  if (obj.slug && (content || obj.sections)) {
+    const sections = content?.sections || obj.sections;
     const sectionsCount = Array.isArray(sections) ? sections.length : 0;
     return {
       status: "success",

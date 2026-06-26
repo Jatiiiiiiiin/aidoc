@@ -236,10 +236,39 @@ async function main() {
     return;
   }
 
+  // Build a single bounded "codebase digest" so n8n can document the whole repo in ONE AI pass
+  // (instead of looping file-by-file). Contents are read locally — the repo is already on disk.
+  const MAX_TOTAL_CHARS = 60000; // overall budget (~15k tokens) to stay within model context
+  const MAX_FILE_CHARS = 6000; // per-file cap so one large file can't crowd out the rest
+  let digest = "";
+  let included = 0;
+  for (const file of selected) {
+    if (digest.length >= MAX_TOTAL_CHARS) break;
+    let content = "";
+    try {
+      content = fs.readFileSync(file, "utf-8");
+    } catch {
+      continue;
+    }
+    if (!content.trim()) continue;
+    if (content.length > MAX_FILE_CHARS) {
+      content = content.slice(0, MAX_FILE_CHARS) + "\n/* ...truncated... */\n";
+    }
+    const block = `\n// ===== FILE: ${file.replace(/\\/g, "/")} =====\n${content}\n`;
+    if (digest.length + block.length > MAX_TOTAL_CHARS) break;
+    digest += block;
+    included++;
+  }
+
+  console.log(`Bundled ${included} file(s) into a ${digest.length}-char codebase digest.`);
+
   const payload = {
     repo,
     branch,
     changed_files: selected,
+    file_list: selected,
+    file_count: included,
+    codebase: digest,
     init: true,
   };
 
