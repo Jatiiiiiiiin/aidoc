@@ -4,7 +4,7 @@ import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Doc, Section } from "@/lib/schema";
 import { SectionRenderer } from "./SectionRenderer";
-import { Cpu, RefreshCw, Layers, Clock, Sparkles, ChevronDown, Download, Copy } from "lucide-react";
+import { RefreshCw, Layers, Clock, ChevronDown, Download, Copy } from "lucide-react";
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, Table, TableRow, TableCell } from "docx";
 import { saveAs } from "file-saver";
 
@@ -55,7 +55,6 @@ export const DocViewerClient: React.FC<DocViewerClientProps> = ({
   // Set the current document data based on the selected version
   const initialDoc = activeVersion?.doc || doc;
   const [activeDoc, setActiveDoc] = useState<Doc | null>(initialDoc || null);
-  const [regeneratingSectionId, setRegeneratingSectionId] = useState<string | null>(null);
   const [activeSectionId, setActiveSectionId] = useState<string>("");
 
   useEffect(() => {
@@ -155,45 +154,7 @@ export const DocViewerClient: React.FC<DocViewerClientProps> = ({
     await navigator.clipboard.writeText(text);
   };
 
-  const handleRegenerateSection = (sectionId: string) => {
-    setRegeneratingSectionId(sectionId);
-    
-    // Simulate API roundtrip for section updates
-    setTimeout(() => {
-      setActiveDoc((prevDoc) => {
-        if (!prevDoc) return null;
-        const updatedSections = prevDoc.sections.map((sec) => {
-          if (sec.id === sectionId) {
-            // Modify content based on section type to show it regenerated
-            let newContent = sec.content;
-            if (sec.type === "text") {
-              newContent = sec.content + "\n\n*(Regenerated with Cobebyte Sol. AI Docs - 100% up-to-date)*";
-            } else if (sec.type === "pipeline") {
-              // Update pipeline statuses to all green/success
-              newContent = {
-                ...sec.content,
-                nodes: sec.content.nodes.map((node: any) => ({ ...node, status: "success" })),
-              };
-            } else if (sec.type === "bullets") {
-              newContent = [...sec.content, "Continuous documentation audit pipeline completed."];
-            }
 
-            return {
-              ...sec,
-              content: newContent,
-            };
-          }
-          return sec;
-        });
-
-        return {
-          ...prevDoc,
-          sections: updatedSections,
-        };
-      });
-      setRegeneratingSectionId(null);
-    }, 2000);
-  };
 
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return "May 2026";
@@ -431,37 +392,9 @@ export const DocViewerClient: React.FC<DocViewerClientProps> = ({
                     <Copy className="h-3 w-3" />
                     <span>Copy</span>
                   </button>
-                  <button
-                    onClick={() => handleRegenerateSection(section.id)}
-                    disabled={regeneratingSectionId !== null}
-                    suppressHydrationWarning
-                    className="flex items-center gap-1.5 rounded-full border border-border-subtle bg-surface-2 px-3 py-1 text-[10px] font-mono uppercase tracking-wider text-text-muted hover:text-foreground transition-all hover:bg-primary/10 hover:border-primary/30 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <RefreshCw
-                      className={`h-3 w-3 ${
-                        regeneratingSectionId === section.id ? "animate-spin text-primary" : ""
-                      }`}
-                    />
-                    <span>
-                      {regeneratingSectionId === section.id ? "Syncing..." : "Regen"}
-                    </span>
-                  </button>
                 </div>
 
-                {/* Loader overlay for section regeneration */}
-                {regeneratingSectionId === section.id && (
-                  <div className={`absolute inset-0 z-20 flex items-center justify-center ${isTextType ? "bg-surface-0/80" : "rounded-lg bg-surface-0/60"} backdrop-blur-sm`}>
-                    <div className="flex flex-col items-center gap-3">
-                      <div className="relative flex h-10 w-10 items-center justify-center">
-                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-secondary/40 opacity-75"></span>
-                        <Cpu className="relative h-6 w-6 text-secondary animate-pulse" />
-                      </div>
-                      <span className="text-xs font-mono text-secondary-light">
-                        AI agent validation schema checking...
-                      </span>
-                    </div>
-                  </div>
-                )}
+
 
                 {/* Component Section */}
                 <SectionRenderer section={section} />
@@ -494,15 +427,6 @@ export const DocViewerClient: React.FC<DocViewerClientProps> = ({
             );
           })}
         </nav>
-        <div className="mt-8 rounded-lg border border-border-subtle bg-surface-1 p-4 glow-indigo">
-          <div className="flex items-center gap-1.5 text-xs font-bold text-foreground mb-2">
-            <Sparkles className="h-4 w-4 text-primary" />
-            <span>AI Actions</span>
-          </div>
-          <p className="text-[11px] text-text-muted leading-normal mb-3">
-            Regenerate individual sections above to update the document context without full page re-runs.
-          </p>
-        </div>
       </aside>
     </div>
   );

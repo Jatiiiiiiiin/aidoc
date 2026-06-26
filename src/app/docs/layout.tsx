@@ -339,7 +339,7 @@ export default function DocsLayout({
 
           <div className="flex items-center gap-2 rounded-full border border-border-subtle bg-surface-2 px-3 py-1 text-xs text-text-muted">
             <Cpu className="h-3.5 w-3.5 text-primary animate-pulse" />
-            <span className="font-mono text-[10px] uppercase">Movement AI</span>
+            <span className="font-mono text-[10px] uppercase">AI</span>
           </div>
         </div>
       </header>
