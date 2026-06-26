@@ -32,9 +32,18 @@ export async function POST(req: Request) {
 
     // 2. Parse Payload
     const body = await req.json();
-    const repo = body.repo;
-    const branch = body.branch || 'main';
-    const changedFiles = Array.isArray(body.changed_files) ? body.changed_files : [];
+    const repo = body.repository?.full_name || body.repo;
+    const branch = (body.ref || body.branch || 'refs/heads/main').replace('refs/heads/', '');
+    
+    let changedFiles: string[] = [];
+    if (body.commits && Array.isArray(body.commits)) {
+      changedFiles = [
+        ...body.commits.flatMap((c: any) => c.added || []),
+        ...body.commits.flatMap((c: any) => c.modified || [])
+      ];
+    } else if (Array.isArray(body.changed_files)) {
+      changedFiles = body.changed_files;
+    }
 
     if (!repo) {
       return NextResponse.json({ error: 'Missing repo in payload' }, { status: 400 });
