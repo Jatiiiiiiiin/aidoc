@@ -248,21 +248,14 @@ export default function DocsLayout({
     <div className="flex min-h-screen flex-col bg-surface-0 text-foreground selection:bg-primary/20 selection:text-foreground">
       {/* Top Banner Navigation */}
       <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-border-subtle bg-surface-1/80 px-6 backdrop-blur-md">
-        <div className="flex items-center gap-4">
-          <Link href={versionedDocs[0] ? `/docs/${versionedDocs[0].slug}` : "/"} className="flex items-center gap-2 group">
-            <div className="relative flex h-8 w-8 items-center justify-center transition-transform group-hover:scale-105">
-              <svg viewBox="0 0 100 100" className="h-7 w-7 text-primary fill-none stroke-current" strokeWidth="14" strokeLinecap="round">
-                <path d="M 72 32 A 32 32 0 1 0 72 68" />
-                <circle cx="76" cy="50" r="7.5" className="fill-primary stroke-none" />
-              </svg>
-            </div>
-            <span className="text-md font-bold tracking-wider text-foreground font-sans uppercase">
-              CODEBYTE
+        <div className="flex items-center gap-3">
+          <Link href={versionedDocs[0] ? `/docs/${versionedDocs[0].slug}` : "/"} className="flex items-center gap-3 group">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/ownLogoFooter.svg" alt="OWN" className="h-7 w-auto" />
+            <span className="hidden sm:inline text-[10px] font-medium tracking-widest text-text-muted uppercase border-l border-border-subtle pl-3">
+              Documentation
             </span>
           </Link>
-          <span className="hidden rounded border border-border-subtle bg-surface-2 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-text-muted md:inline">
-            v1.0.0
-          </span>
         </div>
 
         {/* Global Action Header */}
@@ -345,8 +338,8 @@ export default function DocsLayout({
           </button>
 
           <div className="flex items-center gap-2 rounded-full border border-border-subtle bg-surface-2 px-3 py-1 text-xs text-text-muted">
-            <Cpu className="h-3.5 w-3.5 text-secondary animate-pulse" />
-            <span className="font-mono text-[10px] uppercase">AI Layer: Active</span>
+            <Cpu className="h-3.5 w-3.5 text-primary animate-pulse" />
+            <span className="font-mono text-[10px] uppercase">Movement AI</span>
           </div>
         </div>
       </header>
@@ -442,9 +435,11 @@ export default function DocsLayout({
         </aside>
 
         {/* Page Content Panel */}
-        <main className="flex-1 min-w-0 bg-surface-0 px-6 py-8 md:px-12 lg:px-16">
-          <div className="mx-auto max-w-4xl">
-            {children}
+        <main className="flex-1 min-w-0 bg-surface-0">
+          <div className="px-6 py-8 md:px-12 lg:px-16">
+            <div className="mx-auto max-w-4xl">
+              {children}
+            </div>
           </div>
         </main>
       </div>

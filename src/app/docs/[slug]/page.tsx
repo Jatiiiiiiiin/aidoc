@@ -1,8 +1,9 @@
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
+import { RefreshCw } from "lucide-react";
 import { mockDocsRegistry } from "../../../lib/mockDoc";
 import { fetchAllDocs } from "../../../lib/docsFetcher";
 import { DocViewerClient } from "../../../components/docs/DocViewerClient";
-
 import { normalizeDoc } from "../../../lib/normalizer";
 
 interface PageProps {
@@ -115,7 +116,7 @@ interface PageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
-export default async function Page({ params, searchParams }: PageProps) {
+async function DocContent({ params, searchParams }: PageProps) {
   const resolvedParams = await params;
   const resolvedSearchParams = await searchParams;
   const selectedVersion = typeof resolvedSearchParams.v === "string" ? resolvedSearchParams.v : undefined;
@@ -126,15 +127,28 @@ export default async function Page({ params, searchParams }: PageProps) {
     notFound();
   }
 
-  // Find active version
   const activeVersion = versions.find(v => v.versionLabel === selectedVersion) || versions[versions.length - 1];
 
   return (
-    <DocViewerClient 
-      versions={versions} 
-      activeVersionLabel={activeVersion.versionLabel} 
-      slug={resolvedParams.slug} 
+    <DocViewerClient
+      versions={versions}
+      activeVersionLabel={activeVersion.versionLabel}
+      slug={resolvedParams.slug}
     />
+  );
+}
+
+export default function Page(props: PageProps) {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-64 items-center justify-center">
+          <RefreshCw className="h-5 w-5 animate-spin text-primary" />
+        </div>
+      }
+    >
+      <DocContent {...props} />
+    </Suspense>
   );
 }
 

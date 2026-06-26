@@ -33,6 +33,7 @@ const CopyButton: React.FC<{ text: string }> = ({ text }) => {
   return (
     <button
       onClick={handleCopy}
+      suppressHydrationWarning
       className="flex items-center gap-1 rounded px-2 py-1 transition-colors hover:bg-border-subtle hover:text-foreground cursor-pointer text-text-muted text-[11px]"
     >
       {copied ? (

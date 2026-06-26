@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Doc, Section } from "@/lib/schema";
 import { SectionRenderer } from "./SectionRenderer";
@@ -36,6 +36,15 @@ export const DocViewerClient: React.FC<DocViewerClientProps> = ({
 }) => {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    el.style.animation = "none";
+    void el.offsetHeight;
+    el.style.animation = "";
+  }, [slug]);
 
   // Find active version
   const activeVersion = React.useMemo(() => {
@@ -321,7 +330,7 @@ export const DocViewerClient: React.FC<DocViewerClientProps> = ({
   }
 
   return (
-    <div className="flex gap-8 items-start">
+    <div ref={containerRef} className="doc-enter flex gap-8 items-start">
       {/* Main Documentation Area */}
       <div className="flex-1 min-w-0 space-y-12">
         {/* Doc Header */}
@@ -463,7 +472,7 @@ export const DocViewerClient: React.FC<DocViewerClientProps> = ({
       </div>
 
       {/* Right Sidebar Table of Contents */}
-      <aside className="sticky top-20 hidden w-48 shrink-0 lg:block">
+      <aside className="sticky top-[4.5rem] hidden w-48 shrink-0 lg:block max-h-[calc(100vh-5rem)] overflow-y-auto">
         <h4 className="mb-4 text-xs font-semibold uppercase tracking-wider text-foreground">
           On this page
         </h4>
