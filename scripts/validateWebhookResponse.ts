@@ -102,6 +102,4 @@ function main() {
   assertWebhookSuccess(response, 1, maxRetries);
 }
 
-if (require.main === module) {
-  main();
-}
+main();
