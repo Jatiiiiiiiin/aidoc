@@ -93,6 +93,53 @@ function prioritizeFiles(files: string[]): string[] {
   return [...buckets.flat(), ...rest];
 }
 
+interface RouteRule {
+  pattern: string;
+  dest: string;
+}
+
+function parseRoutingConfig(filePath: string): RouteRule[] {
+  if (!fs.existsSync(filePath)) {
+    return [];
+  }
+  const content = fs.readFileSync(filePath, "utf-8");
+  const rules: RouteRule[] = [];
+  let currentPattern = "";
+  let currentDest = "";
+
+  const lines = content.split("\n");
+  for (let line of lines) {
+    line = line.trim();
+    if (line.startsWith("#") || !line) continue;
+
+    if (line.startsWith("- pattern:")) {
+      const match = line.match(/- pattern:\s*["']?([^"']+)["']?/);
+      if (match) currentPattern = match[1];
+    } else if (line.startsWith("dest:")) {
+      const match = line.match(/dest:\s*["']?([^"']+)["']?/);
+      if (match) {
+        currentDest = match[1];
+        if (currentPattern && currentDest) {
+          rules.push({ pattern: currentPattern, dest: currentDest });
+          currentPattern = "";
+          currentDest = "";
+        }
+      }
+    }
+  }
+  return rules;
+}
+
+function globToRegex(glob: string): RegExp {
+  const escaped = glob
+    .replace(/\\/g, "/")
+    .replace(/[.+^${}()|[\]\\]/g, "\\$&")
+    .replace(/\*\*\/\*/g, "(.+)")
+    .replace(/\*\*/g, "(.+)")
+    .replace(/\*/g, "([^/]+)");
+  return new RegExp(`^${escaped}$`);
+}
+
 function sendWebhook(payload: object, webhookUrl: string): Promise<void> {
   return new Promise((resolve, reject) => {
     const body = JSON.stringify(payload);
@@ -157,17 +204,35 @@ async function main() {
 
   console.log(`Initializing AI documentation for ${repo}...`);
 
+  const rules = parseRoutingConfig("docs-config/routing.yaml");
+  console.log(`Loaded ${rules.length} routing rules from docs-config/routing.yaml`);
+
   const allFiles = getAllSourceFiles();
-  const filtered = prioritizeFiles(filterSourceFiles(allFiles));
-  const selected = filtered.slice(0, MAX_FILES);
+  let filtered = filterSourceFiles(allFiles);
+
+  if (rules.length > 0) {
+    filtered = filtered.filter((file) => {
+      const normalized = file.replace(/\\/g, "/");
+      for (const rule of rules) {
+        const regex = globToRegex(rule.pattern);
+        if (regex.test(normalized)) {
+          return true;
+        }
+      }
+      return false;
+    });
+  }
+
+  const prioritized = prioritizeFiles(filtered);
+  const selected = prioritized.slice(0, MAX_FILES);
 
   console.log(
-    `Found ${allFiles.length} tracked files → ${filtered.length} source files → sending top ${selected.length}`
+    `Found ${allFiles.length} tracked files → ${filtered.length} matching routing rules → sending top ${selected.length}`
   );
   console.log(JSON.stringify(selected, null, 2));
 
   if (selected.length === 0) {
-    console.log("No source files found. Skipping initialization.");
+    console.log("No source files found matching routing rules. Skipping initialization.");
     return;
   }
 
