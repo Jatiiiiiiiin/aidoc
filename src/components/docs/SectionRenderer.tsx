@@ -1,4 +1,4 @@
-﻿import React from "react";
+import React from "react";
 import { Section } from "@/lib/schema";
 import { TextSection } from "./TextSection";
 import { CodeSection } from "./CodeSection";
@@ -11,6 +11,20 @@ interface SectionRendererProps {
 }
 
 export const SectionRenderer: React.FC<SectionRendererProps> = ({ section }) => {
+  let content = section.content;
+  if (
+    typeof content === "string" &&
+    (section.type === "table" ||
+      section.type === "pipeline" ||
+      section.type === "bullets")
+  ) {
+    try {
+      content = JSON.parse(content);
+    } catch (e) {
+      console.error("Failed to parse section content JSON for type " + section.type, e);
+    }
+  }
+
   switch (section.type) {
     case "text":
       return <TextSection title={section.title} content={section.content} />;
@@ -24,11 +38,11 @@ export const SectionRenderer: React.FC<SectionRendererProps> = ({ section }) => 
         />
       );
     case "pipeline":
-      return <PipelineSection title={section.title} content={section.content} />;
+      return <PipelineSection title={section.title} content={content} />;
     case "table":
-      return <TableSection title={section.title} content={section.content} />;
+      return <TableSection title={section.title} content={content} />;
     case "bullets":
-      return <BulletsSection title={section.title} content={section.content} />;
+      return <BulletsSection title={section.title} content={content} />;
     default:
       return (
         <div className="rounded-md border border-red-500/20 bg-red-500/5 p-4 text-sm text-red-400">
@@ -37,7 +51,3 @@ export const SectionRenderer: React.FC<SectionRendererProps> = ({ section }) => 
       );
   }
 };
-
-// sync doc pipeline
-
-// sync doc pipeline

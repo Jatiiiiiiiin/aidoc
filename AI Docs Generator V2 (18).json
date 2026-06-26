@@ -1,0 +1,861 @@
+{
+  "name": "AI Docs Generator V2",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "const body =\n  $input.first().json.body || {};\n\nconst repo =\n  body.repository?.full_name;\n\nif (!repo) {\n  throw new Error(\"Missing repo\");\n}\n\nconst branch =\n  (body.ref || \"refs/heads/main\")\n    .replace(\"refs/heads/\", \"\");\n\nconst commits =\n  body.commits || [];\n\nconst changedFiles = [\n  ...commits.flatMap(c => c.added || []),\n  ...commits.flatMap(c => c.modified || [])\n];\n\nreturn changedFiles.map(file => ({\n  json: {\n\n    repo,\n\n    branch,\n\n    file_path: file\n\n  }\n}));"
+      },
+      "id": "4a65b192-24a8-4be2-8d45-09d7694074bc",
+      "name": "Validate Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        27184,
+        33344
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const doc = $input.first().json || {};\n\nconst output = {\n  ...doc\n};\n\n// Safe defaults\nif (!output.title || typeof output.title !== \"string\") {\n  output.title = \"Untitled\";\n}\n\nif (!output.description || typeof output.description !== \"string\") {\n  output.description = \"\";\n}\n\nif (!Array.isArray(output.sections)) {\n  output.sections = [];\n}\n\n// Normalize sections\noutput.sections = output.sections.map((section, index) => {\n\n  const validSection = {\n    ...section\n  };\n\n  if (!validSection.type) {\n    validSection.type = \"text\";\n  }\n\n  if (!validSection.title) {\n    validSection.title =\n      `Section ${index + 1}`;\n  }\n\n  if (\n    validSection.content === undefined ||\n    validSection.content === null\n  ) {\n    validSection.content = \"\";\n  }\n\n  return validSection;\n});\n\nreturn [{\n  json: {\n\n    ...output,\n\n    metadata:\n      output.metadata || {},\n\n    architecture:\n      output.architecture || {}\n\n  }\n}];"
+      },
+      "id": "6af5e2dd-ea5a-4b5b-950f-6a24f9c1fe75",
+      "name": "Validate Schema",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        30928,
+        33376
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://obelnjcvvrrvkoopphgp.supabase.co/rest/v1/docs",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "on_conflict",
+              "value": "slug"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "YOUR_SUPABASE_ANON_KEY"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer YOUR_SUPABASE_ANON_KEY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "resolution=merge-duplicates,return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({\n\n  slug: $(\"Find Existing Doc\").item.json.slug,\n\n\n  title: $json.title || \"Untitled\",\n\n  description: $json.description || \"\",\n\n  content: {\n    metadata: $json.metadata || {},\n\n    architecture: $json.architecture || {},\n\n    sections: $json.sections || [],\n\n    updated_at: new Date().toISOString(),\n\n    raw: {\n      file_path: $json.file_path,\n      repo: $json.repo,\n      branch: $json.branch,\n      doc_path: $json.doc_path\n    }\n  }\n\n}) }}",
+        "options": {}
+      },
+      "id": "36e79740-9a9f-43a6-9a3d-0297d3439d13",
+      "name": "Save To Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        31296,
+        33376
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, data: $json }) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "a8ca5012-075a-4453-85d2-3ee464a491c1",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        31328,
+        33184
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const metadata = $input.first().json;\nconst code = $(\"Code Cleaner\").item.json.code || \"\";\n\n// Let the LLM derive architecture from actual code — no hardcoded keyword matching\nconst architecture = {\n  systemType: metadata.title || \"Software Platform\",\n  detectedPatterns: metadata.workflows || [],\n  businessValue: [],\n  scalabilityNotes: [],\n  mermaidDiagram: \"\"\n};\n\nreturn [\n  {\n    json: {\n      ...metadata,\n      metadata,\n      architecture,\n      code\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        29552,
+        33344
+      ],
+      "id": "ebeb4484-80f1-48d6-a78a-6c894a608032",
+      "name": "Architecture Analyzer"
+    },
+    {
+      "parameters": {
+        "jsCode": "const httpResponse = $input.first().json;\n\nfunction safeGet(nodeName) {\n  try {\n    return $(nodeName).item.json;\n  } catch (e) {\n    return null;\n  }\n}\n\n// HTTP Request nodes (Fetch GitHub File) only output the response body --\n// file_path/repo/branch from the original trigger item do NOT carry through\n// automatically, so they must be re-fetched from whichever trigger path ran.\nconst upstream = safeGet(\"Validate Input\") || safeGet(\"Validate PR Merge Input\") || {};\n\nreturn [{\n  json: {\n    code: httpResponse.data,\n    file_path: upstream.file_path,\n    repo: upstream.repo,\n    branch: upstream.branch\n  }\n}];"
+      },
+      "id": "fe2ed018-8fcd-4ef2-a5c0-e678ddb60aec",
+      "name": "Code Cleaner",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        27824,
+        33344
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nconst code = data.code || \"\";\n\nconst prompt = `You are a senior software architect analyzing a codebase.\n\nAnalyze the following code and extract metadata.\n\nReturn ONLY valid JSON with this exact structure:\n{\n  \"title\": \"Project Name\",\n  \"description\": \"Brief description\",\n  \"summary\": \"Technical summary\",\n  \"functions\": [\"function1\", \"function2\"],\n  \"classes\": [\"Class1\", \"Class2\"],\n  \"ai_models\": [\"model1\"],\n  \"workflows\": [\"workflow1\"],\n  \"technologies\": [\"Python\", \"FastAPI\"],\n  \"inputs\": [\"input1\"],\n  \"outputs\": [\"output1\"]\n}\n\nCODE:\n${code}\n`;\n\nreturn [{\n  json: {\n    ...data,\n\n    code,\n\n    briefing: data.briefing || \"\",\n\n    projectName:\n      data.projectName || \"Untitled Project\",\n\n    prompt\n  }\n}];\n"
+      },
+      "id": "2c77f4f5-deb0-42be-8047-921f6011a53f",
+      "name": "Metadata Extractor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        28880,
+        33344
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer YOUR_GROQ_API_KEY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ model: \"llama-3.3-70b-versatile\", temperature: 0.1, max_tokens: 3000, response_format: { type: \"json_object\" }, messages: [{ role: \"user\", content: $json.prompt }] }) }}",
+        "options": {}
+      },
+      "id": "67d32d02-2d9a-4da0-9184-fad9973fa081",
+      "name": "Call Groq Metadata",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        29104,
+        33344
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst response = $input.first().json;\nconst raw = response.choices?.[0]?.message?.content || response.message?.content || response.output || response.text || \"\";\n\nif (!raw) {\n  throw new Error(\"AI response empty\");\n}\n\n// 1. Strip markdown code fences safely\nlet cleaned = raw\n  .replace(/\\`\\`\\`json/gi, \"\")\n  .replace(/\\`\\`\\`/g, \"\")\n  .trim();\n\n// 2. Find the first '{'\nconst start = cleaned.indexOf(\"{\");\nif (start === -1) {\n  throw new Error(\"No JSON object found in response\");\n}\n\n// 3. Extract exactly one balanced JSON object (ignores trailing garbage or multiple objects)\nlet depth = 0;\nlet inString = false;\nlet escapeNext = false;\nlet end = -1;\n\nfor (let i = start; i < cleaned.length; i++) {\n  const char = cleaned[i];\n  \n  if (inString) {\n    if (escapeNext) {\n      escapeNext = false;\n    } else if (char === \"\\\\\") {\n      escapeNext = true;\n    } else if (char === '\"') {\n      inString = false;\n    }\n  } else {\n    if (char === '\"') {\n      inString = true;\n    } else if (char === \"{\") {\n      depth++;\n    } else if (char === \"}\") {\n      depth--;\n      if (depth === 0) {\n        end = i;\n        break; // Stop exactly at the matching closing brace\n      }\n    }\n  }\n}\n\nif (end === -1) {\n  throw new Error(\"JSON object is incomplete or unbalanced\");\n}\n\ncleaned = cleaned.slice(start, end + 1);\n\n// Safely remove corrupted control characters that break JSON.parse\ncleaned = cleaned.replace(/[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F\\x7F-\\x9F]/g, \"\");\n\n\n// Safely escape newlines inside string values so JSON.parse doesn't crash\ncleaned = cleaned.replace(/\"(?:[^\"\\\\]|\\\\.)*\"/g, function(match) {\n  return match\n    .replace(/\\n/g, \"\\\\n\")\n    .replace(/\\r/g, \"\\\\r\")\n    .replace(/\\t/g, \"\\\\t\")\n    .replace(/[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F\\x7F-\\x9F]/g, \"\");\n});\n\n// Fix trailing commas in JSON\ncleaned = cleaned.replace(/,\\s*([\\}\\]])/g, '$1');\n\nlet parsed;\ntry {\n  parsed = JSON.parse(cleaned);\n} catch (err) {\n  throw new Error(\"Failed to parse AI JSON: \" + err.message + \" | Snippet: \" + cleaned.substring(0, 100));\n}\n\nreturn [{\n  json: {\n    ...$(\"Metadata Extractor\").item.json,\n    ...parsed\n  }\n}];\n  "
+      },
+      "id": "9c89c1ba-cc0f-472a-b105-2527a86693de",
+      "name": "Extract Metadata JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        29328,
+        33344
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1. Preserve previous workflow state\nconst previous =\n  $input.first()?.json || {};\n\n// 2. Metadata comes from workflow state\nlet metadata =\n  previous.metadata || {};\n\n// 3. Architecture comes from workflow state\nlet architecture =\n  previous.architecture || {};\n\n// 4. Code comes from workflow state\nlet code =\n  previous.code || \"\";\n\n// 5. Safe normalization\nif (typeof metadata !== \"object\") {\n  metadata = {};\n}\n\nif (typeof architecture !== \"object\") {\n  architecture = {};\n}\n\n// 6. Ensure code is string-safe\nconst cleanCodeStr =\n  typeof code === \"string\"\n    ? code\n    : (\n        code\n          ? JSON.stringify(code, null, 2)\n          : \"\"\n      );\n\n// 7. Detect mode\nconst mode =\n  previous.mode || \"create\";\n  \n// 4. Construct the prompt with rich formatting, charts, and tables\nlet prompt = \"\";\n\nif (mode === \"update\") {\n\n// \"Generate Update Prompt\" already built the real, file-scoped prompt\n// (targeting one section by id, asking for { updated_sections: [...] }).\n// Reuse it instead of rebuilding a different, conflicting prompt here --\n// this used to silently overwrite it with a generic {title,description,sections}\n// schema that the merge step (which reads parsed.updated_sections) could never match.\nprompt = previous.prompt || `\nYou are updating an existing technical documentation.\n\nEXISTING DOCUMENT:\n${JSON.stringify(previous.existingDoc || {}, null, 2)}\n\nUPDATED SOURCE CODE:\n${cleanCodeStr.substring(0, 12000)}\n\nReturn valid JSON:\n{\n  \"updated_sections\": [...]\n}\n`;\n\n} else {\n\nprompt = `\nYou are a senior techniacal writer producing investor-grade product documentation.\n\nYour audience includes:\n\nTechnical investors — ex-engineers, clinical advisors, regulatory reviewers\nNon-technical investors — partners, LPs, operators\n\nEvery sentence must remain understandable to both audiences.\n\nWRITING STYLE:\n\nDeclarative\nDense with information\nShort paragraphs\nBullet-heavy\nPitch-deck rhythm, not engineering-spec rhythm\n\nRULES:\n\nUse real function names from the code\nUse exact numeric constants from the code\nNever invent:\naccuracy percentages\nbenchmarks\nclinical claims\nscalability claims\ncompetitive claims\nIf unsupported by code or briefing, omit it\nPrefer:\n\"Uses X because Y\"\nAvoid:\n\"The system employs X, which provides Y\"\n\nFORBIDDEN WORDS:\n\nrevolutionary\ncutting-edge\nleverage\nseamless\ngame-changing\nworld-class\nbest-in-class\ncomprehensive\nrobust (unless directly quoted from source)\n\nLENGTH LIMITS:\n\nEntire document: 180-280 total lines\nExecutive Summary: 2-3 short paragraphs + one bullet list\nSection 4: 4-7 total steps only\nMerge implementation details into parent stages\nDo NOT create separate steps for:\nlogging\nvalidation\nconfig loading\npersistence\nerror handling\n\nGROUNDING REQUIREMENTS:\n\nEvery numeric constant must appear in a fenced code block\nEvery threshold must include real-world meaning\nEvery function must use its real source name\nInclude worked numeric examples for major calculations\nUse related/helper files to explain behavior\nNever infer unsupported behavior\n\nSCANNABILITY RULES:\n\nUse bullets over long prose\nSplit multi-concept explanations into separate headings\nPromote important constants into standalone sections\nLast sentence of every subsection:\nmaximum 12 words\nmust describe impact, not mechanism\n\nTERM RULE:\nOn first mention:\n\nBold the key domain term\nDefine inline using an em dash\n\nExample:\nSDNN — the standard deviation between heartbeats — measures autonomic balance.\n\nFORMATTING RULES:\nInside markdown contents, use ## for subsections and ### for constants, concepts, inputs, outputs.\nUse fenced code blocks for:\nformulas\nconstants\nthresholds\nexamples\npipeline diagrams\nUse:\npython blocks for code\ntext blocks for diagrams\n\nJSON OUTPUT SCHEMA:\nYou MUST output a single, strictly valid JSON object conforming exactly to this structure:\n{\n  \"title\": \"[Product Name Derived From Code + Briefing] - Technical Documentation\",\n  \"description\": \"Investor-grade technical documentation for [Product Name]\",\n  \"sections\": [\n    {\n      \"id\": \"executive-summary\",\n      \"type\": \"text\",\n      \"title\": \"Executive Summary\",\n      \"content\": \"A markdown string containing 2-3 short paragraphs and one bullet list. Highlight what the system does, raw inputs, outputs, target user, and 4-6 grounded use cases.\"\n    },\n    {\n      \"id\": \"business-problem\",\n      \"type\": \"text\",\n      \"title\": \"1. Business Problem Being Solved\",\n      \"content\": \"A markdown string containing a 2-3 sentence opening, a bullet list of raw-data failure modes, a numbered list of system capabilities, and a single business-value closing sentence.\"\n    },\n    {\n      \"id\": \"inputs-outputs\",\n      \"type\": \"table\",\n      \"title\": \"2. Inputs and Outputs\",\n      \"content\": {\n        \"headers\": [\"Type\", \"Name\", \"Specification\", \"Example Grounded Range / Scale\"],\n        \"rows\": [\n          [\"Input\", \"PPG Signal\", \"Float array sampled at 30 Hz\", \"900 samples over 30 seconds\"],\n          [\"Output\", \"HRV Metrics\", \"Derived mathematical variations\", \"SDNN and RMSSD values in milliseconds\"]\n        ]\n      }\n    },\n    {\n      \"id\": \"pipeline-flowchart\",\n      \"type\": \"code\",\n      \"language\": \"mermaid\",\n      \"title\": \"3. Processing Pipeline Flowchart\",\n      \"content\": \"graph TD\\\\n  RawSignal[Raw Input Ingestion] --> Preprocess[Signal Filtering & Validation]\\\\n  Preprocess --> Detection[Feature / Peak Detection]\\\\n  Detection --> Calculation[Metric Calculations]\\\\n  Calculation --> FinalOutput[Grounded Insight Generation]\"\n    },\n    {\n      \"id\": \"pipeline-status\",\n      \"type\": \"pipeline\",\n      \"title\": \"3b. Interactive Processing Pipeline\",\n      \"content\": {\n        \"nodes\": [\n          { \"id\": \"ingestion\", \"name\": \"Data Ingestion\", \"status\": \"success\", \"description\": \"Ingests raw signals and parses configuration variables.\" },\n          { \"id\": \"preprocess\", \"name\": \"Signal Preprocessing\", \"status\": \"success\", \"description\": \"Filters noise and executes threshold validations.\" },\n          { \"id\": \"feature\", \"name\": \"Feature Extraction\", \"status\": \"success\", \"description\": \"Identifies peak metrics and signals of interest.\" },\n          { \"id\": \"output\", \"name\": \"Insight Compilation\", \"status\": \"success\", \"description\": \"Outputs final clinical/financial values validated by the schema.\" }\n        ]\n      }\n    },\n    {\n      \"id\": \"step-by-step\",\n      \"type\": \"text\",\n      \"title\": \"4. Step-by-Step Technical Explanation\",\n      \"content\": \"A markdown string explaining 4-7 total steps. Each step must follow this exact format:\\\\n\\\\n## Step N: [Name]\\\\n\\\\n### Why This Is Needed\\\\n[2-3 short sentences. Final sentence ≤12 words]\\\\n\\\\n### What the Function Does\\\\n[2-3 short sentences. Include real function names, formulas, constants, thresholds, fenced code blocks, worked numeric examples. Final sentence ≤12 words]\\\\n\\\\n### Why This Engineering Choice\\\\n[1-3 short sentences. Final sentence ≤12 words]\"\n    },\n    {\n      \"id\": \"superior-approach\",\n      \"type\": \"text\",\n      \"title\": \"5. Why This Approach Is Superior\",\n      \"content\": \"A markdown string with 3-5 subsections (using ## headings), each 1-3 short sentences, referencing real design decisions from code.\"\n    },\n    {\n      \"id\": \"investor-value-proposition\",\n      \"type\": \"table\",\n      \"title\": \"6. Investor Value Proposition\",\n      \"content\": {\n        \"headers\": [\"Value Pillar\", \"Grounded Code Claim / Mechanism\", \"Investor & Business Impact\"],\n        \"rows\": [\n          [\"Higher Accuracy\", \"...\", \"...\"],\n          [\"Lower False Alerts\", \"...\", \"...\"],\n          [\"Better Product Differentiation\", \"...\", \"...\"],\n          [\"Clinical Expansion Potential\", \"...\", \"...\"],\n          [\"Scalable Architecture\", \"...\", \"...\"]\n        ]\n      }\n    },\n    {\n      \"id\": \"future-expansion\",\n      \"type\": \"text\",\n      \"title\": \"7. Future Expansion Already Supported\",\n      \"content\": \"A markdown string containing 3-5 short subsections maximum, generated ONLY if real extension hooks exist in the code.\"\n    },\n    {\n      \"id\": \"final-conclusion\",\n      \"type\": \"text\",\n      \"title\": \"Final Conclusion\",\n      \"content\": \"A markdown string of 4-6 short sentences summarizing real techniques used, ending with one sentence describing what the system is.\"\n    }\n  ]\n}\n\nCRITICAL JSON RULES (MUST FOLLOW STRICTLY):\n1. Do NOT escape backticks (\\`) in the JSON string. Write them directly as \\` (e.g. \\`\\`\\`text). Escaping backticks as \\\\\\` is INVALID JSON and will crash the parser.\n2. Do NOT escape markdown characters (such as underscores \\_, asterisks \\*, hashes \\#, brackets \\[, \\]) with backslashes. Write them directly as _, *, #, [, ].\n3. Only escape newlines as \\\\n, double quotes as \\\\\\\", and backslashes as \\\\\\\\.\n4. For all objects in the \\\"sections\\\" array, ensure the \\\"content\\\" field contains the exact data structure described (either a string for text/code, or objects with tables/nodes for table/pipeline).\n5. The output must be a single, strictly valid JSON object. Do not include any markdown fence block wrapper (like \\`\\`\\`json ... \\`\\`\\`) or conversational text outside the JSON.\n\nPROJECT METADATA:\n\nTitle: ${metadata.title || \"Untitled\"}\n\nDescription: ${metadata.description || \"\"}\n\nSummary: ${metadata.summary || \"\"}\n\nTechnologies:\n${JSON.stringify(metadata.technologies || [], null, 2)}\n\nFunctions:\n${JSON.stringify(metadata.functions || [], null, 2)}\n\nClasses:\n${JSON.stringify(metadata.classes || [], null, 2)}\n\nAI Models:\n${JSON.stringify(metadata.ai_models || [], null, 2)}\n\nWorkflows:\n${JSON.stringify(metadata.workflows || [], null, 2)}\n\nARCHITECTURE:\n\nSystem Type:\n${architecture.systemType || \"\"}\n\nPatterns:\n${JSON.stringify(architecture.detectedPatterns || [], null, 2)}\n\nBusiness Value:\n${JSON.stringify(architecture.businessValue || [], null, 2)}\n\nScalability:\n${JSON.stringify(architecture.scalabilityNotes || [], null, 2)}\n\nSOURCE CODE:\n${cleanCodeStr.substring(0, 12000)}\n\nGenerate professional engineering documentation now.\nReturn ONLY the JSON object.\n`;\n}\n\nreturn items.map(item => {\n  const input = item.json;\n\n  return {\n    json: {\n      file_path: input.file_path,\n      repo: input.repo,\n      branch: input.branch,\n      slug: input.slug,\n      doc_path: input.doc_path,\n      section_id: input.section_id,\n      mode: input.mode,\n      existingDoc: input.existingDoc,\n\n      code: input.code,\n      prompt,\n\n      metadata: {\n        title: input.title || input.metadata?.title || \"\",\n        description: input.description || input.metadata?.description || \"\",\n        summary: input.summary || input.metadata?.summary || \"\",\n        functions: input.functions || input.metadata?.functions || [],\n        classes: input.classes || input.metadata?.classes || [],\n        ai_models: input.ai_models || input.metadata?.ai_models || [],\n        workflows: input.workflows || input.metadata?.workflows || [],\n        technologies: input.technologies || input.metadata?.technologies || [],\n        inputs: input.inputs || input.metadata?.inputs || [],\n        outputs: input.outputs || input.metadata?.outputs || []\n      }\n    }\n  };\n});\n"
+      },
+      "id": "f8780a00-2dbe-4fce-b67c-1fd63c5c1428",
+      "name": "Prepare Documentation Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        29776,
+        33344
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer YOUR_GROQ_API_KEY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ model: \"llama-3.3-70b-versatile\", temperature: 0.1, max_tokens: 3000, response_format: { type: \"json_object\" }, messages: [{ role: \"user\", content: $json.prompt }] }) }}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 60000
+            }
+          },
+          "timeout": 180000
+        }
+      },
+      "id": "214bd030-cb9f-4bc2-a791-47b7cce933ca",
+      "name": "Call Groq Documentation",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        30000,
+        33344
+      ],
+      "retryOnFail": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\nconst raw = response.choices?.[0]?.message?.content || response.message?.content || response.output || response.text || \"\";\n\nconst prev = $(\"Prepare Documentation Prompt\").item?.json || $(\"Generate Update Prompt\").item?.json || {};\n\nfunction parseFailure(reason) {\n  return [{\n    json: {\n      ...prev,\n      isError: true,\n      title: \"Documentation Parsing Failed\",\n      description: reason,\n      sections: [{\n        type: \"text\",\n        title: \"Parsing Error\",\n        content: \"The AI response could not be turned into valid documentation.\\n\\n\" + reason\n      }]\n    }\n  }];\n}\n\nif (!raw) {\n  return parseFailure(\"AI response was empty.\");\n}\n\nlet cleaned = raw\n  .replace(/```json/gi, \"\")\n  .replace(/```/g, \"\")\n  .trim();\n\nconst start = cleaned.indexOf(\"{\");\nif (start === -1) {\n  return parseFailure(\"No JSON object found in the AI response.\");\n}\n\nlet depth = 0;\nlet inString = false;\nlet escapeNext = false;\nlet end = -1;\n\nfor (let i = start; i < cleaned.length; i++) {\n  const char = cleaned[i];\n  if (inString) {\n    if (escapeNext) {\n      escapeNext = false;\n    } else if (char === \"\\\\\") {\n      escapeNext = true;\n    } else if (char === '\"') {\n      inString = false;\n    }\n  } else {\n    if (char === '\"') {\n      inString = true;\n    } else if (char === \"{\") {\n      depth++;\n    } else if (char === \"}\") {\n      depth--;\n      if (depth === 0) {\n        end = i;\n        break;\n      }\n    }\n  }\n}\n\nif (end === -1) {\n  return parseFailure(\"The AI response's JSON object was incomplete or unbalanced.\");\n}\n\ncleaned = cleaned.slice(start, end + 1);\ncleaned = cleaned.replace(/[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F\\x7F-\\x9F]/g, \"\");\ncleaned = cleaned.replace(/\"(?:[^\"\\\\]|\\\\.)*\"/g, function (match) {\n  return match\n    .replace(/\\n/g, \"\\\\n\")\n    .replace(/\\r/g, \"\\\\r\")\n    .replace(/\\t/g, \"\\\\t\")\n    .replace(/[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F\\x7F-\\x9F]/g, \"\");\n});\ncleaned = cleaned.replace(/,\\s*([\\}\\]])/g, \"$1\");\n\nlet parsed;\ntry {\n  parsed = JSON.parse(cleaned);\n} catch (err) {\n  return parseFailure(\n    \"Failed to parse AI JSON: \" + err.message + \" | Snippet: \" + cleaned.substring(0, 100)\n  );\n}\n\n// --- SURGICAL MERGE LOGIC ---\nif (prev && prev.mode === \"update\" && prev.existingDoc) {\n  const oldDoc = prev.existingDoc;\n\n  // Deterministic skip — JavaScript decided, ignore LLM response\n  if (prev.preSkip === true) {\n    return [{\n      json: {\n        ...prev,\n        isError: false,\n        isSkip: true,\n        title: oldDoc.title || prev.title,\n        description: oldDoc.description || prev.description,\n        sections: oldDoc.sections || []\n      }\n    }];\n  }\n\n  // LLM decided to skip\n  if (parsed.skip === true) {\n    return [{\n      json: {\n        ...prev,\n        isError: false,\n        isSkip: true,\n        title: oldDoc.title || prev.title,\n        description: oldDoc.description || prev.description,\n        sections: oldDoc.sections || []\n      }\n    }];\n  }\n\n  let mergedSections = [...(oldDoc.sections || [])];\n  const patches = parsed.updated_sections || [];\n\n  if (patches.length === 0) {\n    return [{\n      json: {\n        ...prev,\n        isError: false,\n        isSkip: true,\n        title: oldDoc.title || prev.title,\n        description: oldDoc.description || prev.description,\n        sections: mergedSections\n      }\n    }];\n  }\n\n  for (const patch of patches) {\n    if (!patch.id) continue;\n    const index = mergedSections.findIndex((s) => s.id === patch.id);\n    if (index !== -1) {\n      // Spread existing first so id/type/title are never lost if LLM omits them\n      mergedSections[index] = { ...mergedSections[index], ...patch };\n    } else {\n      // New section — append it\n      mergedSections.push(patch);\n    }\n  }\n\n  return [{\n    json: {\n      ...prev,\n      isError: false,\n      title: oldDoc.title || prev.title,\n      description: oldDoc.description || prev.description,\n      sections: mergedSections\n    }\n  }];\n}\n\n// Create Mode\nreturn [{\n  json: {\n    ...prev,\n    ...parsed,\n    isError: false\n  }\n}];\n"
+      },
+      "id": "aa67134c-5413-431d-b034-37b6b02b95cb",
+      "name": "Extract Documentation JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        30256,
+        33328
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "5bc8db5e-3441-44b5-92fa-55854a221d9e",
+      "name": "Merge Error And Success",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        30496,
+        33344
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.github.com/repos/{{$json.repo}}/contents/{{$json.file_path}}?ref={{$json.branch}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github.v3.raw"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_GITHUB_PAT"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        27600,
+        33344
+      ],
+      "id": "ffd8b0d6-d0b6-49ba-970f-5298efdd8e57",
+      "name": "Fetch GitHub File"
+    },
+    {
+      "parameters": {
+        "jsCode": "const filePath = $json.file_path || \"\";\nconst repo = $json.repo || \"\";\n\n// One doc per REPOSITORY now (not per file) -- slug identifies the whole repo doc.\nconst repoSlug = repo\n  .toLowerCase()\n  .replace(/[^a-z0-9]+/g, \"-\")\n  .replace(/^-+|-+$/g, \"\");\n\n// Stable per-file section id, used to target only this file section inside\n// the repo-level doc when merging (see \"Generate Update Prompt\").\nconst sectionId = \"file-\" + filePath\n  .toLowerCase()\n  .replace(/[^a-z0-9]+/g, \"-\")\n  .replace(/^-+|-+$/g, \"\");\n\nconst docPath = `content/docs/${repoSlug}.mdx`;\n\nreturn [{\n  json: {\n    ...$json,\n    slug: repoSlug,\n    section_id: sectionId,\n    doc_path: docPath\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        28032,
+        33344
+      ],
+      "id": "e54e3a1a-9df5-4a1d-966f-9e38aac0cacf",
+      "name": "Find Existing Doc"
+    },
+    {
+      "parameters": {
+        "jsCode": "// The HTTP node has \"Full Response\" enabled, so the item is always a single\n// object { statusCode, headers, body } — never auto-split by n8n, which\n// otherwise happens whenever a top-level JSON array is returned.\nconst response = $(\"Check Existing Doc In Supabase\").item.json;\nconst rows = response?.body;\n\n// A successful match returns an array of rows; no match returns an empty array.\nconst exists = Array.isArray(rows) && rows.length > 0;\n\nreturn [{\n  json: {\n    ...$(\"Find Existing Doc\").item.json,\n    doc_exists: exists\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        28448,
+        33344
+      ],
+      "id": "a66f1587-09cc-4685-aac0-e27e3ecabb1a",
+      "name": "Resolve Doc Mode"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "4d66f0e6-39c1-4a8c-9ad7-39f8e721a4fb",
+              "leftValue": "={{$json.doc_exists}}",
+              "rightValue": "update",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        28656,
+        33344
+      ],
+      "id": "0d44aa23-07fc-4d23-b802-efcaab59a0b8",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "url": "=https://obelnjcvvrrvkoopphgp.supabase.co/rest/v1/docs",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "select",
+              "value": "slug"
+            },
+            {
+              "name": "slug",
+              "value": "=eq.{{$json.slug}}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "YOUR_SUPABASE_ANON_KEY"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_SUPABASE_ANON_KEY"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        28240,
+        33344
+      ],
+      "id": "78fa2c6b-151b-4395-9361-ef5b554ee3ab",
+      "name": "Check Existing Doc In Supabase",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const existing = $input.first().json;\nconst newCode = $(\"Code Cleaner\").item.json.code || \"\";\nconst find = $(\"Find Existing Doc\").first().json;\nconst filePath = find.file_path;\n\nconst rawContent = existing.content || {};\nconst cleanMetadata = {\n  title: rawContent.metadata?.title || existing.title || \"\",\n  description: rawContent.metadata?.description || existing.description || \"\",\n  summary: rawContent.metadata?.summary || \"\",\n  functions: rawContent.metadata?.functions || [],\n  classes: rawContent.metadata?.classes || [],\n  ai_models: rawContent.metadata?.ai_models || [],\n  workflows: rawContent.metadata?.workflows || [],\n  technologies: rawContent.metadata?.technologies || [],\n  inputs: rawContent.metadata?.inputs || [],\n  outputs: rawContent.metadata?.outputs || []\n};\n\nconst existingDoc = {\n  ...rawContent,\n  metadata: cleanMetadata,\n  title: existing.title,\n  description: existing.description\n};\nconst existingSections = rawContent.sections || [];\n\n// Deterministic skip — never ask the LLM to decide this\nconst lowerPath = (filePath || '').toLowerCase();\nconst preSkip =\n  lowerPath.includes('.github/') ||\n  lowerPath.includes('/workflows/') ||\n  lowerPath.endsWith('.yml') ||\n  lowerPath.endsWith('.yaml') ||\n  lowerPath.endsWith('.json') ||\n  lowerPath.endsWith('.lock') ||\n  lowerPath.endsWith('.md') ||\n  lowerPath.endsWith('.gitignore') ||\n  lowerPath.includes('/test') ||\n  lowerPath.includes('.test.') ||\n  lowerPath.includes('.spec.');\n\n// Build section list WITH their current content so the model can see what\n// already exists and surgically decide what (if anything) to change.\nconst sectionList = existingSections.map(s => {\n  let contentSnippet = '';\n  if (typeof s.content === 'string') {\n    contentSnippet = s.content.substring(0, 800);\n  } else if (s.content) {\n    contentSnippet = JSON.stringify(s.content).substring(0, 800);\n  }\n  return '- id: ' + s.id + ', type: ' + s.type + ', title: ' + s.title + '\\n  FULL EXISTING CONTENT (preserve this, only append/modify the specific part that changed):\\n  ' + contentSnippet;\n}).join('\\n\\n');\n\nconst updateJson = '{ \"updated_sections\": [ { \"id\": \"<exact-existing-id>\", \"type\": \"<same-type-as-existing>\", \"title\": \"<same-title-as-existing>\", \"content\": \"<FULL content: existing content kept intact + only the changed part added or revised>\" } ] }';\n\nconst prompt =\n  'You are maintaining investor-grade product documentation for a software system.\\n' +\n  'This document describes the ENTIRE product. The file below is ONE component of many in the codebase.\\n\\n' +\n  'Your task: decide if this ONE file change warrants updating any existing doc sections.\\n\\n' +\n  'STRICT RULES — READ CAREFULLY:\\n' +\n  '1. The document is about the WHOLE product, not this single file. Do NOT rewrite sections to be about just this file.\\n' +\n  '2. LOCKED SECTIONS — these NEVER change from a single file commit unless the core product value proposition fundamentally changed: executive-summary, business-problem, superior-approach, investor-value-proposition, final-conclusion.\\n' +\n  '3. 3. MOST commits should return { \"skip\": true }. Adding a method, fixing a bug, or updating a config file almost never justifies updating investor documentation. EXCEPTION: A brand-new file that introduces a capability not previously mentioned anywhere in the document SHOULD update the step-by-step section or add a new section.\\n' +\n  '4. Maximum 2 sections may be returned in updated_sections. If you think more than 2 need updating, return { \"skip\": true } instead — that signals a major refactor requiring human review.\\n' +\n  '5. Only use section ids exactly as listed below. Do NOT invent new ids.\\n' +\n  '6. You MUST copy the exact same id, type, and title from the existing section — never change them.\\n' +\n  '7. SURGICAL EDIT ONLY: your updated content field must contain the COMPLETE existing content verbatim, with only the specific changed part appended or modified inline. Do NOT summarise, shorten, or restructure existing content. If you cannot preserve the full existing content, return { \"skip\": true } instead.\\n' +\n  '8. You MUST add a NEW section (with a new unique id) if the file is a brand-new script/module that introduces a capability not mentioned in any existing section. Do not skip new files — they always warrant documentation.\\n\\n' +\n  'EXISTING DOCUMENT SECTIONS (preserve all content exactly):\\n' + sectionList + '\\n\\n' +\n  'CHANGED FILE: ' + filePath + '\\n\\n' +\n  'FILE CODE:\\n' + (newCode || '').substring(0, 8000) + '\\n\\n' +\n  'Return ONLY one of these JSON formats (no markdown, no explanation):\\n' +\n  'Nothing to update: { \"skip\": true }\\n' +\n  'Sections to update or add (max 2): ' + updateJson;\n\nreturn [{\n  json: {\n    ...find,\n    mode: \"update\",\n    preSkip: preSkip,\n    metadata: cleanMetadata,\n    architecture: rawContent.architecture || {},\n    existingDoc: existingDoc,\n    prompt\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        29088,
+        33120
+      ],
+      "id": "59622a67-5c3c-47be-a5fa-05ca88af7801",
+      "name": "Generate Update Prompt"
+    },
+    {
+      "parameters": {
+        "url": "=https://obelnjcvvrrvkoopphgp.supabase.co/rest/v1/docs?slug=eq.{{$json.slug}}&select=*",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "YOUR_SUPABASE_ANON_KEY"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_SUPABASE_ANON_KEY"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        28880,
+        33120
+      ],
+      "id": "34d13576-bd1f-4903-abd7-0b41b15d19c3",
+      "name": "Fetch Existing Doc",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "owner": {
+          "__rl": true,
+          "value": "https://github.com/jatiiiiiiiin",
+          "mode": "url"
+        },
+        "repository": {
+          "__rl": true,
+          "value": "dealer-app",
+          "mode": "list",
+          "cachedResultName": "dealer-app",
+          "cachedResultUrl": "https://github.com/Jatiiiiiiiin/dealer-app"
+        },
+        "events": [
+          "push"
+        ],
+        "options": {}
+      },
+      "type": "n8n-nodes-base.githubTrigger",
+      "typeVersion": 1,
+      "position": [
+        26976,
+        33344
+      ],
+      "id": "9dacfd95-b5a7-40ef-a854-a50abcb5556f",
+      "name": "Github Trigger",
+      "webhookId": "3cabbe3a-22c6-47ca-8c44-ec524c3f05d5",
+      "credentials": {
+        "githubOAuth2Api": {
+          "id": "VuGdKFAduZQQWeie",
+          "name": "GitHub OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ai-docs-pr-merge",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        26976,
+        33568
+      ],
+      "id": "f7e6e0d1-f143-4dc8-9645-d677a91ae607",
+      "name": "PR Merge Webhook",
+      "webhookId": "5e1f2a3b-9c4d-4f6e-8a1b-3d7c9e0f1a2b"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || {};\n\nconst repo = body.repo;\nif (!repo) {\n  throw new Error(\"Missing repo\");\n}\n\nconst branch = body.branch || \"main\";\nconst changedFiles = Array.isArray(body.changed_files) ? body.changed_files : [];\n\nreturn changedFiles.map(file => ({\n  json: {\n    repo,\n    branch,\n    file_path: file\n  }\n}));"
+      },
+      "id": "053dcce8-84a7-4269-8eae-d95f7b21f3d9",
+      "name": "Validate PR Merge Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        27184,
+        33568
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        30768,
+        33248
+      ],
+      "id": "985b36a6-785c-40d8-a19a-d1560c223c2f",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "amount": 2
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        31104,
+        33376
+      ],
+      "id": "15e25fda-bc9c-41a6-9e4d-0c067b28d6db",
+      "name": "Wait",
+      "webhookId": "c1b40449-0d44-4bf1-b31b-f984f7745a97"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Validate Input": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Schema": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save To Supabase": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Architecture Analyzer": {
+      "main": [
+        [
+          {
+            "node": "Prepare Documentation Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code Cleaner": {
+      "main": [
+        [
+          {
+            "node": "Find Existing Doc",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Metadata Extractor": {
+      "main": [
+        [
+          {
+            "node": "Call Groq Metadata",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Groq Metadata": {
+      "main": [
+        [
+          {
+            "node": "Extract Metadata JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Metadata JSON": {
+      "main": [
+        [
+          {
+            "node": "Architecture Analyzer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Documentation Prompt": {
+      "main": [
+        [
+          {
+            "node": "Call Groq Documentation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Groq Documentation": {
+      "main": [
+        [
+          {
+            "node": "Extract Documentation JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Documentation JSON": {
+      "main": [
+        [
+          {
+            "node": "Merge Error And Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Error And Success": {
+      "main": [
+        [
+          {
+            "node": "Validate Schema",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch GitHub File": {
+      "main": [
+        [
+          {
+            "node": "Code Cleaner",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Existing Doc": {
+      "main": [
+        [
+          {
+            "node": "Check Existing Doc In Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resolve Doc Mode": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Fetch Existing Doc",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Metadata Extractor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Existing Doc In Supabase": {
+      "main": [
+        [
+          {
+            "node": "Resolve Doc Mode",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Existing Doc": {
+      "main": [
+        [
+          {
+            "node": "Generate Update Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Update Prompt": {
+      "main": [
+        [
+          {
+            "node": "Prepare Documentation Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Github Trigger": {
+      "main": [
+        [
+          {
+            "node": "Validate Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PR Merge Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate PR Merge Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate PR Merge Input": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Fetch GitHub File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Save To Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "saveDataSuccessExecution": "none",
+    "saveDataErrorExecution": "all",
+    "saveManualExecutions": false,
+    "saveExecutionProgress": false
+  },
+  "versionId": "3c13dc70-257d-4be0-9117-2655603fcbf4",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "e503fa0719099dd36018c034d7a9886047d35b12f66d691b710f89e53eed1bac"
+  },
+  "nodeGroups": [],
+  "id": "fpW8a1xWoYUtALKy",
+  "tags": []
+}

@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { mockDocsRegistry } from "../../../lib/mockDoc";
-import { supabase } from "../../../lib/supabase";
+import { fetchAllDocs } from "../../../lib/docsFetcher";
 import { DocViewerClient } from "../../../components/docs/DocViewerClient";
 
 import { normalizeDoc } from "../../../lib/normalizer";
@@ -25,12 +25,8 @@ async function getDocVersions(slug: string) {
   let dbDocs: any[] = [];
   
   try {
-    const { data, error } = await supabase
-      .from("docs")
-      .select("id, slug, title, content, description, repo, file_path, created_at")
-      .order("created_at", { ascending: true });
-      
-    if (!error && data) {
+    const data = await fetchAllDocs();
+    if (data) {
       dbDocs = data;
     }
   } catch (err) {

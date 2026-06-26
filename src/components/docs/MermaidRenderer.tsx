@@ -52,7 +52,7 @@ export const MermaidRenderer: React.FC<MermaidRendererProps> = ({ chart }) => {
             : {
                 background: "transparent",
                 primaryColor: "#643ada",
-                primaryTextColor: "#111827",
+                primaryTextColor: "#ffffff",
                 lineColor: "#d1d5db",
                 textColor: "#111827",
                 nodeBorder: "#e5e7eb",

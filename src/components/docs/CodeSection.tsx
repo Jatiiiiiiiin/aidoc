@@ -61,7 +61,7 @@ export const CodeSection: React.FC<CodeSectionProps> = ({
                   suppressHydrationWarning
                   className={`cursor-pointer rounded px-2.5 py-0.5 text-[10px] font-semibold transition-all ${
                     activeTab === "visual"
-                      ? "bg-primary text-foreground shadow-sm"
+                      ? "bg-primary text-white shadow-sm"
                       : "text-text-muted hover:text-foreground"
                   }`}
                 >
@@ -72,7 +72,7 @@ export const CodeSection: React.FC<CodeSectionProps> = ({
                   suppressHydrationWarning
                   className={`cursor-pointer rounded px-2.5 py-0.5 text-[10px] font-semibold transition-all ${
                     activeTab === "code"
-                      ? "bg-primary text-foreground shadow-sm"
+                      ? "bg-primary text-white shadow-sm"
                       : "text-text-muted hover:text-foreground"
                   }`}
                 >

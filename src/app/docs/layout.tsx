@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Terminal, Cpu, Search, FileText, Check, RefreshCw, Sun, Moon } from "lucide-react";
 import { mockDocsRegistry } from "@/lib/mockDoc";
-import { supabase } from "@/lib/supabase";
 import { normalizeDoc } from "@/lib/normalizer";
 
 function slugify(text: string): string {
@@ -48,21 +47,18 @@ export default function DocsLayout({
     document.documentElement.classList.toggle("dark", newTheme === "dark");
   };
 
-  // Fetch docs list from Supabase, or fall back to mock registry
+  // Fetch docs list from local API (which handles Supabase and local cache fallbacks)
   useEffect(() => {
     async function fetchDocs() {
       try {
-        const { data, error } = await supabase
-          .from("docs")
-          .select("id, slug, title, content, description, repo, file_path, created_at")
-          .order("created_at", { ascending: true });
-
-        if (error) throw error;
+        const res = await fetch("/api/docs");
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        const data = await res.json();
         if (data && data.length > 0) {
           setDbDocs(data);
         }
       } catch (err) {
-        console.warn("Supabase fetch failed, utilizing mock registry:", err);
+        console.warn("Fetch from local API failed:", err);
       }
     }
     fetchDocs();
@@ -253,7 +249,7 @@ export default function DocsLayout({
       {/* Top Banner Navigation */}
       <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-border-subtle bg-surface-1/80 px-6 backdrop-blur-md">
         <div className="flex items-center gap-4">
-          <Link href={`/docs/${versionedDocs[0]?.slug || 'wearable-health-insights-pipeline'}`} className="flex items-center gap-2 group">
+          <Link href={versionedDocs[0] ? `/docs/${versionedDocs[0].slug}` : "/"} className="flex items-center gap-2 group">
             <div className="relative flex h-8 w-8 items-center justify-center transition-transform group-hover:scale-105">
               <svg viewBox="0 0 100 100" className="h-7 w-7 text-primary fill-none stroke-current" strokeWidth="14" strokeLinecap="round">
                 <path d="M 72 32 A 32 32 0 1 0 72 68" />

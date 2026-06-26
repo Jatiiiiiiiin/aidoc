@@ -349,7 +349,7 @@ export const DocViewerClient: React.FC<DocViewerClientProps> = ({
                           }}
                           className={`px-3 py-1 text-[11px] font-mono rounded-full cursor-pointer transition-all flex items-center gap-1.5 ${
                             isSelected
-                              ? "bg-primary text-foreground font-semibold shadow-md shadow-black/20"
+                              ? "bg-primary text-white font-semibold shadow-md shadow-black/20"
                               : "text-text-muted hover:text-foreground hover:bg-surface-1/50"
                           }`}
                         >
@@ -367,7 +367,7 @@ export const DocViewerClient: React.FC<DocViewerClientProps> = ({
               <button
                 onClick={handleDownloadDocx}
                 suppressHydrationWarning
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-foreground bg-primary hover:bg-primary/90 rounded-md transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-primary hover:bg-primary/90 rounded-md transition-colors"
               >
                 <Download className="h-4 w-4" />
                 Download .docx

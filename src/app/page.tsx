@@ -1,25 +1,27 @@
-import { redirect } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { redirect, notFound } from "next/navigation";
+import { fetchAllDocs } from "@/lib/docsFetcher";
+import { mockDocsRegistry } from "@/lib/mockDoc";
 
 export default async function Home() {
   let targetSlug: string | null = null;
   try {
-    const { data } = await supabase
-      .from("docs")
-      .select("slug")
-      .order("created_at", { ascending: true })
-      .limit(1);
-
-    if (data && data.length > 0 && data[0].slug) {
-      targetSlug = data[0].slug;
+    const docs = await fetchAllDocs();
+    if (docs && docs.length > 0 && docs[0].slug) {
+      targetSlug = docs[0].slug;
     }
   } catch (e) {
-    console.warn("Redirect home failed to query Supabase:", e);
+    console.warn("Redirect home failed to fetch docs:", e);
   }
 
   if (targetSlug) {
     redirect(`/docs/${targetSlug}`);
   }
 
-  redirect("/docs/wearable-health-insights-pipeline");
+  const mockSlugs = Object.keys(mockDocsRegistry);
+  if (mockSlugs.length > 0) {
+    redirect(`/docs/${mockSlugs[0]}`);
+  }
+
+  notFound();
 }
+
