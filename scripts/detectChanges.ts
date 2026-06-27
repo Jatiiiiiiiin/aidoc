@@ -30,7 +30,6 @@ const HIGH_PRIORITY_PATTERNS = [
   /^src\/app\/api\//,
   /^src\/services\//,
   /^src\/lib\//,
-  /^scripts\//,
 ];
 
 // Directories to ignore
@@ -41,7 +40,15 @@ const IGNORED_DIR_PATTERNS = [
   /^dist\//,
   /^docs-config\//,
   /^public\//,
-  /^\.git\//
+  /^\.git\//,
+  // aidoc infrastructure scripts — never document these
+  /^scripts\/detectChanges/,
+  /^scripts\/prepareWebhookPayload/,
+  /^scripts\/routeDocs/,
+  /^scripts\/validateWebhookResponse/,
+  /^scripts\/findExistingDocs/,
+  /^scripts\/updateSections/,
+  /^scripts\/initializeDocs/,
 ];
 
 // Specific config files to ignore
@@ -55,7 +62,11 @@ const IGNORED_FILES = new Set([
   "eslint.config.mjs",
   "tsconfig.json",
   "package.json",
-  "package-lock.json"
+  "package-lock.json",
+  // aidoc setup files
+  "setup-aidocs.js",
+  "setup-aidocs.mjs",
+  "fix-n8n.js",
 ]);
 
 function getChangedFiles(base: string, head: string): string[] {

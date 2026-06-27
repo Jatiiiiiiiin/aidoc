@@ -1,5 +1,4 @@
 name: AI Documentation Automation
-# Test A: skip path — CI yaml change should not update the investor doc
 
 on:
   push:
@@ -7,11 +6,21 @@ on:
   pull_request:
     types: [closed]
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Run mode: "init" sends all source files, "update" processes only changed files'
+        required: true
+        default: 'init'
+        type: choice
+        options:
+          - init
+          - update
 
 jobs:
   build-and-trigger:
-    # Run only if the pull request was merged successfully or direct push
-    if: github.event.pull_request.merged == true || github.event_name == 'push'
+    # Run only if the pull request was merged successfully or direct push or manual trigger
+    if: github.event.pull_request.merged == true || github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
 
     steps:
@@ -31,12 +40,18 @@ jobs:
       - name: Check commit type
         id: check_commit
         run: |
-          COMMIT_MSG=$(git log -1 --pretty=%B)
-          if echo "$COMMIT_MSG" | grep -q "setup: connect to AI documentation pipeline"; then
-            echo "mode=init" >> $GITHUB_OUTPUT
-            echo "Setup commit detected — running full initialization."
+          # Manual workflow_dispatch always uses the input mode
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "mode=${{ github.event.inputs.mode }}" >> $GITHUB_OUTPUT
+            echo "Manual trigger detected — running in ${{ github.event.inputs.mode }} mode."
           else
-            echo "mode=update" >> $GITHUB_OUTPUT
+            COMMIT_MSG=$(git log -1 --pretty=%B)
+            if echo "$COMMIT_MSG" | grep -q "setup: connect to AI documentation pipeline"; then
+              echo "mode=init" >> $GITHUB_OUTPUT
+              echo "Setup commit detected — running full initialization."
+            else
+              echo "mode=update" >> $GITHUB_OUTPUT
+            fi
           fi
 
       # ── INIT MODE: first-time connection ─────────────────────────────────────

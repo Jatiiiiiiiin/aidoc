@@ -9,6 +9,10 @@ const filesToDownload = [
   { dest: 'scripts/detectChanges.ts', src: 'scripts/detectChanges.ts' },
   { dest: 'scripts/prepareWebhookPayload.ts', src: 'scripts/prepareWebhookPayload.ts' },
   { dest: 'scripts/routeDocs.ts', src: 'scripts/routeDocs.ts' },
+  { dest: 'scripts/validateWebhookResponse.ts', src: 'scripts/validateWebhookResponse.ts' },
+  { dest: 'scripts/findExistingDocs.ts', src: 'scripts/findExistingDocs.ts' },
+  { dest: 'scripts/updateSections.ts', src: 'scripts/updateSections.ts' },
+  { dest: 'scripts/initializeDocs.ts', src: 'scripts/initializeDocs.ts' },
   { dest: 'docs-config/routing.yaml', src: 'docs-config/routing.yaml' }
 ];
 
@@ -33,25 +37,24 @@ async function downloadFile(url, dest) {
 }
 
 async function setup() {
-  console.log('🚀 Initializing AI Docs connection for this repository...\n');
+  console.log('Connecting repository to AI Documentation Automation...\n');
 
   for (const file of filesToDownload) {
     const destPath = path.join(process.cwd(), file.dest);
     const dir = path.dirname(destPath);
 
-    // Create directory if it doesn't exist
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
 
     const url = `${REPO_BASE_URL}/${file.src}`;
     console.log(`Downloading ${file.dest}...`);
-    
+
     try {
       await downloadFile(url, destPath);
-      console.log(`✅ Success: ${file.dest}`);
+      console.log(`  ${file.dest}`);
     } catch (error) {
-      console.error(`❌ Error: ${error.message}`);
+      console.error(`  ${file.dest} — ${error.message}`);
       console.log('If your repository is private, you might need to copy the files manually instead.');
     }
   }
@@ -59,28 +62,35 @@ async function setup() {
   // Check for tsx dependency in package.json
   const packageJsonPath = path.join(process.cwd(), 'package.json');
   if (fs.existsSync(packageJsonPath)) {
-    console.log('\n📦 Checking package.json for required dependencies...');
+    console.log('\nChecking dependencies...');
     try {
       const pkg = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
       const hasTsx = (pkg.devDependencies && pkg.devDependencies.tsx) || (pkg.dependencies && pkg.dependencies.tsx);
-      
+
       if (!hasTsx) {
-        console.log('⚠️ The "tsx" package is required to run the typescript scripts.');
-        console.log('👉 Please run: npm install -D tsx');
+        console.log('  "tsx" is missing. Run: npm install -D tsx');
       } else {
-         console.log('✅ "tsx" dependency found.');
+        console.log('  "tsx" found.');
       }
     } catch(e) {
-      console.log('⚠️ Could not parse package.json.');
+      console.log('  Could not parse package.json.');
     }
   } else {
-    console.log('\n⚠️ No package.json found. You will need Node.js and "tsx" installed to run the scripts via GitHub Actions.');
+    console.log('\n  No package.json found. Make sure Node.js and "tsx" are installed.');
   }
 
-  console.log('\n🎉 Setup complete!');
+  console.log('\nSetup complete!');
   console.log('Next steps:');
-  console.log('1. Ensure you have the N8N_DOCS_WEBHOOK_URL secret set in this repository\'s GitHub Actions settings.');
-  console.log('2. Commit and push these new files to trigger your first documentation build!');
+  console.log('  1. Run: npm install -D tsx yaml minimatch  (if not already installed)');
+  console.log('  2. In your GitHub Repository Settings > Secrets and variables > Actions, add:');
+  console.log('     AIDOC_WEBHOOK_URL = https://jatiiiiiin.app.n8n.cloud/webhook/ai-docs-pr-merge');
+  console.log('     AIDOC_WEBHOOK_SECRET = <your secure secret token, if applicable>');
+  console.log('  3. Commit the new files:');
+  console.log('     git add .github/ scripts/ docs-config/');
+  console.log('     git commit -m "setup: connect to AI documentation pipeline"');
+  console.log('  4. Push to main:');
+  console.log('     git push origin main');
+  console.log('\nThe GitHub Actions workflow will trigger automatically and your docs will appear in the viewer.');
 }
 
 setup();

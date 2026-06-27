@@ -2,20 +2,83 @@
 # Maps source files to their permanent MDX/Markdown documentation files
 
 routes:
+  # ── src/ projects (Next.js, CRA, Vite with src/) ──────────────────────────
   - pattern: "src/components/**/*.tsx"
-    dest: "content/docs/components/{name}.mdx"
-  
+    dest: "content/docs/{name}.mdx"
+
+  - pattern: "src/components/**/*.ts"
+    dest: "content/docs/{name}.mdx"
+
   - pattern: "src/hooks/**/*.ts"
-    dest: "content/docs/hooks/{name}.mdx"
+    dest: "content/docs/{name}.mdx"
+
+  - pattern: "src/hooks/**/*.tsx"
+    dest: "content/docs/{name}.mdx"
 
   - pattern: "src/app/api/**/*.ts"
-    dest: "content/docs/api/{name}.mdx"
+    dest: "content/docs/{name}.mdx"
 
   - pattern: "src/services/**/*.ts"
-    dest: "content/docs/services/{name}.mdx"
+    dest: "content/docs/{name}.mdx"
 
   - pattern: "src/utils/**/*.ts"
-    dest: "content/docs/utils/{name}.mdx"
+    dest: "content/docs/{name}.mdx"
 
   - pattern: "src/lib/**/*.ts"
-    dest: "content/docs/utils/{name}.mdx"
+    dest: "content/docs/{name}.mdx"
+
+  - pattern: "src/pages/**/*.tsx"
+    dest: "content/docs/{name}.mdx"
+
+  - pattern: "src/views/**/*.tsx"
+    dest: "content/docs/{name}.mdx"
+
+  - pattern: "src/**/*.ts"
+    dest: "content/docs/{name}.mdx"
+
+  - pattern: "src/**/*.tsx"
+    dest: "content/docs/{name}.mdx"
+
+  # ── Root-level project layouts (Vite/React without src/) ──────────────────
+  - pattern: "views/**/*.tsx"
+    dest: "content/docs/{name}.mdx"
+
+  - pattern: "views/**/*.ts"
+    dest: "content/docs/{name}.mdx"
+
+  - pattern: "components/**/*.tsx"
+    dest: "content/docs/{name}.mdx"
+
+  - pattern: "components/**/*.ts"
+    dest: "content/docs/{name}.mdx"
+
+  - pattern: "pages/**/*.tsx"
+    dest: "content/docs/{name}.mdx"
+
+  - pattern: "pages/**/*.ts"
+    dest: "content/docs/{name}.mdx"
+
+  - pattern: "hooks/**/*.ts"
+    dest: "content/docs/{name}.mdx"
+
+  - pattern: "services/**/*.ts"
+    dest: "content/docs/{name}.mdx"
+
+  - pattern: "lib/**/*.ts"
+    dest: "content/docs/{name}.mdx"
+
+  - pattern: "utils/**/*.ts"
+    dest: "content/docs/{name}.mdx"
+
+  # ── Root-level files (App.tsx, main.tsx, index.tsx, authService.ts, etc.) ─
+  - pattern: "*.tsx"
+    dest: "content/docs/{name}.mdx"
+
+  - pattern: "*.ts"
+    dest: "content/docs/{name}.mdx"
+
+  - pattern: "*.jsx"
+    dest: "content/docs/{name}.mdx"
+
+  - pattern: "*.js"
+    dest: "content/docs/{name}.mdx"

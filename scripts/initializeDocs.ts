@@ -144,15 +144,20 @@ function sendWebhook(payload: object, webhookUrl: string): Promise<void> {
   return new Promise((resolve, reject) => {
     const body = JSON.stringify(payload);
     const url = new URL(webhookUrl);
+    const secret = process.env.AIDOC_WEBHOOK_SECRET;
+    const headers: Record<string, string | number> = {
+      "Content-Type": "application/json",
+      "x-github-event": "push",
+      "Content-Length": Buffer.byteLength(body),
+    };
+    if (secret) {
+      headers["Authorization"] = `Bearer ${secret}`;
+    }
     const options = {
       hostname: url.hostname,
       path: url.pathname + url.search,
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-github-event": "push",
-        "Content-Length": Buffer.byteLength(body),
-      },
+      headers,
     };
 
     const req = https.request(options, (res) => {
@@ -172,7 +177,7 @@ function sendWebhook(payload: object, webhookUrl: string): Promise<void> {
 
 async function main() {
   const webhookUrl =
-    process.env.N8N_WEBHOOK_URL ||
+    process.env.AIDOC_WEBHOOK_URL ||
     "https://jatiiiiiin.app.n8n.cloud/webhook/ai-docs-pr-merge";
 
   let repo = process.env.GITHUB_REPOSITORY || "";
