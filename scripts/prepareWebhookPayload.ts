@@ -29,23 +29,29 @@ function main() {
     process.exit(0);
   }
 
+  // Read README / overview MD files for investor-grade context
+  const readmeCandidates = ["README.md", "readme.md", "Readme.md", "ARCHITECTURE.md", "OVERVIEW.md"];
+  const readmeParts: string[] = [];
+  for (const name of readmeCandidates) {
+    if (fs.existsSync(name)) {
+      const content = fs.readFileSync(name, "utf-8").trim();
+      if (content) readmeParts.push(`--- ${name} ---\n${content.substring(0, 4000)}`);
+    }
+  }
+  const projectReadme = readmeParts.join("\n\n");
+
   // Fetch GitHub environment variables
   const repo = process.env.GITHUB_REPOSITORY || "owner/repo";
   const branch = process.env.GITHUB_REF_NAME || "main";
   
   // Use GITHUB_EVENT_PATH to parse details for a merged PR
   let commitSha = process.env.GITHUB_SHA || "";
-  let prNumber: number | null = null;
 
   if (process.env.GITHUB_EVENT_PATH && fs.existsSync(process.env.GITHUB_EVENT_PATH)) {
     try {
       const eventData = JSON.parse(fs.readFileSync(process.env.GITHUB_EVENT_PATH, "utf-8"));
-      if (eventData.pull_request) {
-        prNumber = eventData.pull_request.number;
-        // Use the merge commit sha if available
-        if (eventData.pull_request.merge_commit_sha) {
-          commitSha = eventData.pull_request.merge_commit_sha;
-        }
+      if (eventData.pull_request?.merge_commit_sha) {
+        commitSha = eventData.pull_request.merge_commit_sha;
       }
     } catch (e) {
       console.warn("Failed to parse GITHUB_EVENT_PATH, falling back to env globals.", e);
@@ -56,6 +62,7 @@ function main() {
     ref: `refs/heads/${branch}`,
     before: "0000000000000000000000000000000000000000",
     after: commitSha,
+    project_readme: projectReadme,
     repository: {
       full_name: repo,
       default_branch: branch,
@@ -64,7 +71,7 @@ function main() {
       {
         id: commitSha,
         message: "Filtered AI Docs update",
-        added: changedFiles, // Treating all changes as 'added' ensures they are processed
+        added: changedFiles,
         removed: [],
         modified: []
       }

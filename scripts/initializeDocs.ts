@@ -93,51 +93,18 @@ function prioritizeFiles(files: string[]): string[] {
   return [...buckets.flat(), ...rest];
 }
 
-interface RouteRule {
-  pattern: string;
-  dest: string;
-}
-
-function parseRoutingConfig(filePath: string): RouteRule[] {
-  if (!fs.existsSync(filePath)) {
-    return [];
-  }
-  const content = fs.readFileSync(filePath, "utf-8");
-  const rules: RouteRule[] = [];
-  let currentPattern = "";
-  let currentDest = "";
-
-  const lines = content.split("\n");
-  for (let line of lines) {
-    line = line.trim();
-    if (line.startsWith("#") || !line) continue;
-
-    if (line.startsWith("- pattern:")) {
-      const match = line.match(/- pattern:\s*["']?([^"']+)["']?/);
-      if (match) currentPattern = match[1];
-    } else if (line.startsWith("dest:")) {
-      const match = line.match(/dest:\s*["']?([^"']+)["']?/);
-      if (match) {
-        currentDest = match[1];
-        if (currentPattern && currentDest) {
-          rules.push({ pattern: currentPattern, dest: currentDest });
-          currentPattern = "";
-          currentDest = "";
-        }
+function readProjectReadme(): string {
+  const candidates = ["README.md", "readme.md", "Readme.md", "ARCHITECTURE.md", "OVERVIEW.md"];
+  const parts: string[] = [];
+  for (const name of candidates) {
+    if (fs.existsSync(name)) {
+      const content = fs.readFileSync(name, "utf-8").trim();
+      if (content) {
+        parts.push(`--- ${name} ---\n${content.substring(0, 4000)}`);
       }
     }
   }
-  return rules;
-}
-
-function globToRegex(glob: string): RegExp {
-  const escaped = glob
-    .replace(/\\/g, "/")
-    .replace(/[.+^${}()|[\]\\]/g, "\\$&")
-    .replace(/\*\*\/\*/g, "(.+)")
-    .replace(/\*\*/g, "(.+)")
-    .replace(/\*/g, "([^/]+)");
-  return new RegExp(`^${escaped}$`);
+  return parts.join("\n\n");
 }
 
 function sendWebhook(payload: object, webhookUrl: string): Promise<void> {
@@ -210,30 +177,13 @@ async function main() {
 
   console.log(`Initializing AI documentation for ${repo}...`);
 
-  const rules = parseRoutingConfig("docs-config/routing.yaml");
-  console.log(`Loaded ${rules.length} routing rules from docs-config/routing.yaml`);
-
   const allFiles = getAllSourceFiles();
-  let filtered = filterSourceFiles(allFiles);
-
-  if (rules.length > 0) {
-    filtered = filtered.filter((file) => {
-      const normalized = file.replace(/\\/g, "/");
-      for (const rule of rules) {
-        const regex = globToRegex(rule.pattern);
-        if (regex.test(normalized)) {
-          return true;
-        }
-      }
-      return false;
-    });
-  }
-
+  const filtered = filterSourceFiles(allFiles);
   const prioritized = prioritizeFiles(filtered);
   const selected = prioritized.slice(0, MAX_FILES);
 
   console.log(
-    `Found ${allFiles.length} tracked files → ${filtered.length} matching routing rules → sending top ${selected.length}`
+    `Found ${allFiles.length} tracked files → ${filtered.length} source files → sending top ${selected.length}`
   );
   console.log(JSON.stringify(selected, null, 2));
 
@@ -245,11 +195,16 @@ async function main() {
   // The payload format now strictly mimics a standard GitHub Push Event
   // so that the exact same webhook handler can process it seamlessly.
   const commitSha = execSync("git rev-parse HEAD", { encoding: "utf-8" }).trim();
+  const projectReadme = readProjectReadme();
+  if (projectReadme) {
+    console.log("Including README/overview context in payload.");
+  }
 
   const payload = {
     ref: `refs/heads/${branch}`,
     before: "0000000000000000000000000000000000000000",
     after: commitSha,
+    project_readme: projectReadme,
     repository: {
       full_name: repo,
       default_branch: branch,

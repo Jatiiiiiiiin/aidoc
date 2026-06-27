@@ -1,45 +1,67 @@
 # Documentation Automation Routing Configuration
-# Maps source files to their permanent MDX/Markdown documentation files
+# Maps source files to their permanent MDX documentation files.
+# Used by routeDocs.ts to determine doc destination paths.
+# Note: initializeDocs.ts sends ALL source files regardless of these rules —
+# these patterns only affect the doc_path mapping output, not what gets documented.
 
 routes:
   # ── src/ projects (Next.js, CRA, Vite with src/) ──────────────────────────
-  - pattern: "src/components/**/*.tsx"
-    dest: "content/docs/{name}.mdx"
-
-  - pattern: "src/components/**/*.ts"
-    dest: "content/docs/{name}.mdx"
-
-  - pattern: "src/hooks/**/*.ts"
-    dest: "content/docs/{name}.mdx"
-
-  - pattern: "src/hooks/**/*.tsx"
-    dest: "content/docs/{name}.mdx"
-
-  - pattern: "src/app/api/**/*.ts"
-    dest: "content/docs/{name}.mdx"
-
-  - pattern: "src/services/**/*.ts"
-    dest: "content/docs/{name}.mdx"
-
-  - pattern: "src/utils/**/*.ts"
-    dest: "content/docs/{name}.mdx"
-
-  - pattern: "src/lib/**/*.ts"
-    dest: "content/docs/{name}.mdx"
-
-  - pattern: "src/pages/**/*.tsx"
-    dest: "content/docs/{name}.mdx"
-
-  - pattern: "src/views/**/*.tsx"
+  - pattern: "src/**/*.tsx"
     dest: "content/docs/{name}.mdx"
 
   - pattern: "src/**/*.ts"
     dest: "content/docs/{name}.mdx"
 
-  - pattern: "src/**/*.tsx"
+  - pattern: "src/**/*.jsx"
     dest: "content/docs/{name}.mdx"
 
-  # ── Root-level project layouts (Vite/React without src/) ──────────────────
+  - pattern: "src/**/*.js"
+    dest: "content/docs/{name}.mdx"
+
+  # ── Backend / API / Server (Express, Fastify, NestJS, Flask-style) ─────────
+  - pattern: "backend/**/*.ts"
+    dest: "content/docs/{name}.mdx"
+
+  - pattern: "backend/**/*.js"
+    dest: "content/docs/{name}.mdx"
+
+  - pattern: "api/**/*.ts"
+    dest: "content/docs/{name}.mdx"
+
+  - pattern: "api/**/*.js"
+    dest: "content/docs/{name}.mdx"
+
+  - pattern: "server/**/*.ts"
+    dest: "content/docs/{name}.mdx"
+
+  - pattern: "server/**/*.js"
+    dest: "content/docs/{name}.mdx"
+
+  - pattern: "routes/**/*.ts"
+    dest: "content/docs/{name}.mdx"
+
+  - pattern: "routes/**/*.js"
+    dest: "content/docs/{name}.mdx"
+
+  - pattern: "controllers/**/*.ts"
+    dest: "content/docs/{name}.mdx"
+
+  - pattern: "controllers/**/*.js"
+    dest: "content/docs/{name}.mdx"
+
+  - pattern: "middleware/**/*.ts"
+    dest: "content/docs/{name}.mdx"
+
+  - pattern: "middleware/**/*.js"
+    dest: "content/docs/{name}.mdx"
+
+  - pattern: "models/**/*.ts"
+    dest: "content/docs/{name}.mdx"
+
+  - pattern: "models/**/*.js"
+    dest: "content/docs/{name}.mdx"
+
+  # ── Frontend (root-level, no src/) ────────────────────────────────────────
   - pattern: "views/**/*.tsx"
     dest: "content/docs/{name}.mdx"
 
@@ -58,19 +80,47 @@ routes:
   - pattern: "pages/**/*.ts"
     dest: "content/docs/{name}.mdx"
 
+  - pattern: "features/**/*.tsx"
+    dest: "content/docs/{name}.mdx"
+
+  - pattern: "features/**/*.ts"
+    dest: "content/docs/{name}.mdx"
+
   - pattern: "hooks/**/*.ts"
     dest: "content/docs/{name}.mdx"
 
-  - pattern: "services/**/*.ts"
+  - pattern: "store/**/*.ts"
     dest: "content/docs/{name}.mdx"
 
+  - pattern: "context/**/*.tsx"
+    dest: "content/docs/{name}.mdx"
+
+  - pattern: "context/**/*.ts"
+    dest: "content/docs/{name}.mdx"
+
+  # ── Shared / common ───────────────────────────────────────────────────────
   - pattern: "lib/**/*.ts"
     dest: "content/docs/{name}.mdx"
 
   - pattern: "utils/**/*.ts"
     dest: "content/docs/{name}.mdx"
 
-  # ── Root-level files (App.tsx, main.tsx, index.tsx, authService.ts, etc.) ─
+  - pattern: "services/**/*.ts"
+    dest: "content/docs/{name}.mdx"
+
+  - pattern: "core/**/*.ts"
+    dest: "content/docs/{name}.mdx"
+
+  - pattern: "domain/**/*.ts"
+    dest: "content/docs/{name}.mdx"
+
+  - pattern: "types/**/*.ts"
+    dest: "content/docs/{name}.mdx"
+
+  - pattern: "config/**/*.ts"
+    dest: "content/docs/{name}.mdx"
+
+  # ── Root-level entry files (App.tsx, main.tsx, index.ts, authService.ts) ──
   - pattern: "*.tsx"
     dest: "content/docs/{name}.mdx"
 
